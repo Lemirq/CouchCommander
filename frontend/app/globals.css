@@ -1,26 +1,292 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    /* Hulu Color Scheme */
+    --hulu-green: #1ce783;
+    --hulu-dark-green: #00b359;
+    --hulu-black: #0b0c0f;
+    --hulu-dark-gray: #1c1c1c;
+    --hulu-gray: #2a2a2a;
+    --hulu-light-gray: #3e3e3e;
+    --hulu-text-gray: #ababab;
+    --hulu-white: #ffffff;
+
+    /* App Variables */
+    --background: var(--hulu-black);
+    --foreground: var(--hulu-white);
+    --card-background: var(--hulu-dark-gray);
+    --border-color: var(--hulu-light-gray);
+    --accent: var(--hulu-green);
+    --accent-hover: var(--hulu-dark-green);
+    --muted: var(--hulu-text-gray);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-inter);
+
+    /* Hulu Theme Colors */
+    --color-hulu-green: var(--hulu-green);
+    --color-hulu-dark-green: var(--hulu-dark-green);
+    --color-hulu-black: var(--hulu-black);
+    --color-hulu-dark-gray: var(--hulu-dark-gray);
+    --color-hulu-gray: var(--hulu-gray);
+    --color-hulu-light-gray: var(--hulu-light-gray);
+    --color-hulu-text-gray: var(--hulu-text-gray);
+    --color-hulu-white: var(--hulu-white);
+
+    /* Custom Grays for Dark Theme */
+    --color-gray-850: #1f2937;
+    --color-gray-900: var(--hulu-black);
+    --color-gray-800: var(--hulu-dark-gray);
+    --color-gray-700: var(--hulu-gray);
+    --color-gray-600: var(--hulu-light-gray);
+    --color-gray-500: var(--hulu-text-gray);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-family:
+        var(--font-inter),
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        "Noto Sans",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Touch and Mobile Optimizations */
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    touch-action: manipulation;
+}
+
+button {
+    min-height: 48px;
+    min-width: 48px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus styles for accessibility */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--hulu-green);
+    outline-offset: 2px;
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--hulu-dark-gray);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--hulu-light-gray);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--hulu-text-gray);
+}
+
+/* Selection styling */
+::selection {
+    background: var(--hulu-green);
+    color: var(--hulu-black);
+}
+
+::-moz-selection {
+    background: var(--hulu-green);
+    color: var(--hulu-black);
+}
+
+/* Custom animations */
+@keyframes pulse-green {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes glow {
+    0%,
+    100% {
+        box-shadow: 0 0 5px var(--hulu-green);
+    }
+    50% {
+        box-shadow:
+            0 0 20px var(--hulu-green),
+            0 0 30px var(--hulu-green);
+    }
+}
+
+.pulse-green {
+    animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.glow-green {
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+/* Glass morphism effect for cards */
+.glass-card {
+    background: rgba(28, 28, 28, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(62, 62, 62, 0.3);
+}
+
+/* Button hover effects */
+.btn-hulu {
+    background: var(--hulu-green);
+    color: var(--hulu-black);
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+.btn-hulu:hover {
+    background: var(--hulu-dark-green);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(28, 231, 131, 0.3);
+}
+
+.btn-hulu:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(28, 231, 131, 0.3);
+}
+
+.btn-secondary {
+    background: var(--hulu-gray);
+    color: var(--hulu-white);
+    border: 1px solid var(--hulu-light-gray);
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--hulu-light-gray);
+    border-color: var(--hulu-text-gray);
+}
+
+.btn-secondary:disabled {
+    background: var(--hulu-dark-gray);
+    color: var(--hulu-text-gray);
+    border-color: var(--hulu-dark-gray);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Input styling */
+.input-hulu {
+    background: var(--hulu-gray);
+    border: 1px solid var(--hulu-light-gray);
+    color: var(--hulu-white);
+}
+
+.input-hulu:focus {
+    border-color: var(--hulu-green);
+    box-shadow: 0 0 0 2px rgba(28, 231, 131, 0.2);
+}
+
+.input-hulu::placeholder {
+    color: var(--hulu-text-gray);
+}
+
+/* Slider styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+    background: var(--hulu-light-gray);
+    height: 8px;
+    border-radius: 4px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--hulu-green);
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--hulu-black);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: var(--hulu-dark-green);
+    box-shadow: 0 0 10px rgba(28, 231, 131, 0.5);
+}
+
+input[type="range"]::-moz-range-track {
+    background: var(--hulu-light-gray);
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+    background: var(--hulu-green);
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--hulu-black);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+/* Custom utilities */
+.text-shadow {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.border-glow {
+    box-shadow: 0 0 0 1px var(--hulu-green);
+}
+
+.border-glow-active {
+    box-shadow:
+        0 0 0 2px var(--hulu-green),
+        0 0 10px rgba(28, 231, 131, 0.3);
 }

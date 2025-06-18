@@ -235,6 +235,7 @@ name = "backend"
 version = "0.1.0"
 dependencies = [
  "enigo",
+ "futures-util",
  "serde",
  "serde_json",
  "tauri",

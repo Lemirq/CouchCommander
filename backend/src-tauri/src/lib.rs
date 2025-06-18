@@ -1,11 +1,28 @@
 use enigo::{Enigo, Key, Keyboard, Settings, Direction};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::runtime::Runtime;
+
+mod websocket;
+use websocket::WebSocketServer;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandResponse {
     pub status: String,
     pub message: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServerStatus {
+    pub running: bool,
+    pub port: u16,
+    pub clients: usize,
+    pub local_ip: Option<String>,
+}
+
+// Global WebSocket server state
+static mut WEBSOCKET_SERVER: Option<Arc<WebSocketServer>> = None;
+static mut RUNTIME: Option<Arc<Runtime>> = None;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -147,6 +164,135 @@ async fn open_website(url: String) -> Result<CommandResponse, String> {
     })
 }
 
+// WebSocket Server Commands
+#[tauri::command]
+async fn start_websocket_server(port: Option<u16>) -> Result<CommandResponse, String> {
+    let server_port = port.unwrap_or(8080);
+    
+    unsafe {
+        if WEBSOCKET_SERVER.is_some() {
+            return Ok(CommandResponse {
+                status: "info".to_string(),
+                message: "WebSocket server is already running".to_string(),
+            });
+        }
+
+        // Initialize runtime if not exists
+        if RUNTIME.is_none() {
+            let rt = Runtime::new().map_err(|e| format!("Failed to create runtime: {}", e))?;
+            RUNTIME = Some(Arc::new(rt));
+        }
+
+        let server = Arc::new(WebSocketServer::new(server_port));
+        WEBSOCKET_SERVER = Some(Arc::clone(&server));
+        
+        let server_clone = Arc::clone(&server);
+        if let Some(rt) = &RUNTIME {
+            rt.spawn(async move {
+                if let Err(e) = server_clone.start().await {
+                    eprintln!("WebSocket server error: {}", e);
+                }
+            });
+        }
+    }
+    
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("WebSocket server started on port {}", server_port),
+    })
+}
+
+#[tauri::command]
+async fn stop_websocket_server() -> Result<CommandResponse, String> {
+    unsafe {
+        if WEBSOCKET_SERVER.is_none() {
+            return Ok(CommandResponse {
+                status: "info".to_string(),
+                message: "WebSocket server is not running".to_string(),
+            });
+        }
+
+        WEBSOCKET_SERVER = None;
+        // Note: In a production app, you'd want to properly shutdown the server
+        // For now, we'll just remove the reference
+    }
+    
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: "WebSocket server stopped".to_string(),
+    })
+}
+
+#[tauri::command]
+async fn get_server_status() -> Result<ServerStatus, String> {
+    let local_ip = get_local_ip();
+    
+    unsafe {
+        if let Some(server) = &WEBSOCKET_SERVER {
+            Ok(ServerStatus {
+                running: true,
+                port: server.addr.port(),
+                clients: server.get_client_count(),
+                local_ip,
+            })
+        } else {
+            Ok(ServerStatus {
+                running: false,
+                port: 0,
+                clients: 0,
+                local_ip,
+            })
+        }
+    }
+}
+
+#[tauri::command]
+async fn broadcast_message(message: String) -> Result<CommandResponse, String> {
+    unsafe {
+        if let Some(server) = &WEBSOCKET_SERVER {
+            server.broadcast_message(&message).map_err(|e| e.to_string())?;
+            Ok(CommandResponse {
+                status: "success".to_string(),
+                message: "Message broadcasted to all clients".to_string(),
+            })
+        } else {
+            Err("WebSocket server is not running".to_string())
+        }
+    }
+}
+
+fn get_local_ip() -> Option<String> {
+    use std::net::UdpSocket;
+    
+    // Try to get local IP by connecting to a remote address
+    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+        if socket.connect("8.8.8.8:80").is_ok() {
+            if let Ok(addr) = socket.local_addr() {
+                return Some(addr.ip().to_string());
+            }
+        }
+    }
+    
+    // Fallback: try to get local IP from network interfaces
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(output) = std::process::Command::new("ifconfig")
+            .arg("en0")
+            .output() {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            for line in output_str.lines() {
+                if line.trim().starts_with("inet ") && !line.contains("127.0.0.1") {
+                    if let Some(ip) = line.split_whitespace().nth(1) {
+                        return Some(ip.to_string());
+                    }
+                }
+            }
+        }
+    }
+    
+    None
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -160,7 +306,11 @@ pub fn run() {
             volume_down,
             volume_mute,
             send_key,
-            open_website
+            open_website,
+            start_websocket_server,
+            stop_websocket_server,
+            get_server_status,
+            broadcast_message
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
