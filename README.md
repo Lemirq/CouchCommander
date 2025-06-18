@@ -2,7 +2,9 @@
 
 **Transform your phone into the ultimate remote control for your laptop and media setup**
 
-CouchCommander is a cross-platform system that lets you control media playback, system settings, and desktop functions from your phone over your local Wi-Fi network. Perfect for controlling your laptop connected to a TV or large monitor from the comfort of your couch.
+I keep having this problem where I sit down to watch a movie/tv show/anime on my bed through my monitor. And my laptop and monitor are realllyyy far away. Now I can take my wireless keyboard to bed to control it, but this is wayyy too annoying. So I created CouchCommander.
+
+CouchCommander is a cross-platform system that lets you control media playback, system settings, and desktop functions from your phone over your local Wi-Fi network. Perfect for controlling your laptop connected to a TV or large monitor from the comfort of your couch or bed.
 
 ## ✨ Features
 
@@ -109,8 +111,8 @@ CouchCommander is a cross-platform system that lets you control media playback, 
 
 This project follows a phased development approach:
 
--   ✅ Phase 1: Core media and volume control
--   🚧 Phase 2: Advanced mouse/keyboard simulation
+-   🚧 Phase 1: Core media and volume control
+-   📋 Phase 2: Advanced mouse/keyboard simulation
 -   📋 Phase 3: Auto-discovery and polish
 -   📋 Phase 4: Multi-platform testing and optimization
 
