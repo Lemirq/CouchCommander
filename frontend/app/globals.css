@@ -11,49 +11,32 @@
     --hulu-text-gray: #ababab;
     --hulu-white: #ffffff;
 
-    /* App Variables */
-    --background: var(--hulu-black);
-    --foreground: var(--hulu-white);
-    --card-background: var(--hulu-dark-gray);
-    --border-color: var(--hulu-light-gray);
-    --accent: var(--hulu-green);
-    --accent-hover: var(--hulu-dark-green);
-    --muted: var(--hulu-text-gray);
-}
-
-@theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --font-sans: var(--font-inter);
-
-    /* Hulu Theme Colors */
-    --color-hulu-green: var(--hulu-green);
-    --color-hulu-dark-green: var(--hulu-dark-green);
-    --color-hulu-black: var(--hulu-black);
-    --color-hulu-dark-gray: var(--hulu-dark-gray);
-    --color-hulu-gray: var(--hulu-gray);
-    --color-hulu-light-gray: var(--hulu-light-gray);
-    --color-hulu-text-gray: var(--hulu-text-gray);
-    --color-hulu-white: var(--hulu-white);
-
-    /* Custom Grays for Dark Theme */
-    --color-gray-850: #1f2937;
-    --color-gray-900: var(--hulu-black);
-    --color-gray-800: var(--hulu-dark-gray);
-    --color-gray-700: var(--hulu-gray);
-    --color-gray-600: var(--hulu-light-gray);
-    --color-gray-500: var(--hulu-text-gray);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+    /* shadcn/ui compatible variables */
+    --background: 11 12 15;
+    --foreground: 255 255 255;
+    --card: 28 28 28;
+    --card-foreground: 255 255 255;
+    --popover: 28 28 28;
+    --popover-foreground: 255 255 255;
+    --primary: 28 231 131;
+    --primary-foreground: 11 12 15;
+    --secondary: 42 42 42;
+    --secondary-foreground: 255 255 255;
+    --muted: 42 42 42;
+    --muted-foreground: 171 171 171;
+    --accent: 28 231 131;
+    --accent-foreground: 11 12 15;
+    --destructive: 220 38 38;
+    --destructive-foreground: 255 255 255;
+    --border: 62 62 62;
+    --input: 42 42 42;
+    --ring: 28 231 131;
+    --radius: 0.75rem;
 }
 
 html {
     font-family:
-        var(--font-inter),
+        var(--font-montserrat),
         ui-sans-serif,
         system-ui,
         -apple-system,
@@ -69,9 +52,9 @@ html {
 }
 
 body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
@@ -102,7 +85,7 @@ button:focus,
 input:focus,
 select:focus,
 textarea:focus {
-    outline: 2px solid var(--hulu-green);
+    outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
 }
 
@@ -112,27 +95,27 @@ textarea:focus {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--hulu-dark-gray);
+    background: hsl(var(--card));
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--hulu-light-gray);
+    background: hsl(var(--border));
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--hulu-text-gray);
+    background: hsl(var(--muted-foreground));
 }
 
 /* Selection styling */
 ::selection {
-    background: var(--hulu-green);
-    color: var(--hulu-black);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
 }
 
 ::-moz-selection {
-    background: var(--hulu-green);
-    color: var(--hulu-black);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
 }
 
 /* Custom animations */
@@ -149,12 +132,12 @@ textarea:focus {
 @keyframes glow {
     0%,
     100% {
-        box-shadow: 0 0 5px var(--hulu-green);
+        box-shadow: 0 0 5px hsl(var(--primary));
     }
     50% {
         box-shadow:
-            0 0 20px var(--hulu-green),
-            0 0 30px var(--hulu-green);
+            0 0 20px hsl(var(--primary)),
+            0 0 30px hsl(var(--primary));
     }
 }
 
@@ -176,57 +159,57 @@ textarea:focus {
 
 /* Button hover effects */
 .btn-hulu {
-    background: var(--hulu-green);
-    color: var(--hulu-black);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
     transition: all 0.2s ease;
     font-weight: 600;
 }
 
 .btn-hulu:hover {
-    background: var(--hulu-dark-green);
+    background: hsl(var(--primary) / 0.9);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(28, 231, 131, 0.3);
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
 }
 
 .btn-hulu:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(28, 231, 131, 0.3);
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
 }
 
 .btn-secondary {
-    background: var(--hulu-gray);
-    color: var(--hulu-white);
-    border: 1px solid var(--hulu-light-gray);
+    background: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border: 1px solid hsl(var(--border));
     transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-    background: var(--hulu-light-gray);
-    border-color: var(--hulu-text-gray);
+    background: hsl(var(--secondary) / 0.8);
+    border-color: hsl(var(--muted-foreground));
 }
 
 .btn-secondary:disabled {
-    background: var(--hulu-dark-gray);
-    color: var(--hulu-text-gray);
-    border-color: var(--hulu-dark-gray);
+    background: hsl(var(--card));
+    color: hsl(var(--muted-foreground));
+    border-color: hsl(var(--card));
     cursor: not-allowed;
     opacity: 0.5;
 }
 
 /* Input styling */
 .input-hulu {
-    background: var(--hulu-gray);
-    border: 1px solid var(--hulu-light-gray);
-    color: var(--hulu-white);
+    background: hsl(var(--input));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
 }
 
 .input-hulu:focus {
-    border-color: var(--hulu-green);
-    box-shadow: 0 0 0 2px rgba(28, 231, 131, 0.2);
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
 }
 
 .input-hulu::placeholder {
-    color: var(--hulu-text-gray);
+    color: hsl(var(--muted-foreground));
 }
 
 /* Slider styling */
@@ -238,7 +221,7 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-track {
-    background: var(--hulu-light-gray);
+    background: hsl(var(--border));
     height: 8px;
     border-radius: 4px;
 }
@@ -246,32 +229,32 @@ input[type="range"]::-webkit-slider-track {
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    background: var(--hulu-green);
+    background: hsl(var(--primary));
     height: 20px;
     width: 20px;
     border-radius: 50%;
-    border: 2px solid var(--hulu-black);
+    border: 2px solid hsl(var(--background));
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-    background: var(--hulu-dark-green);
-    box-shadow: 0 0 10px rgba(28, 231, 131, 0.5);
+    background: hsl(var(--primary) / 0.9);
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
 }
 
 input[type="range"]::-moz-range-track {
-    background: var(--hulu-light-gray);
+    background: hsl(var(--border));
     height: 8px;
     border-radius: 4px;
     border: none;
 }
 
 input[type="range"]::-moz-range-thumb {
-    background: var(--hulu-green);
+    background: hsl(var(--primary));
     height: 20px;
     width: 20px;
     border-radius: 50%;
-    border: 2px solid var(--hulu-black);
+    border: 2px solid hsl(var(--background));
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
 }
@@ -282,11 +265,23 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .border-glow {
-    box-shadow: 0 0 0 1px var(--hulu-green);
+    box-shadow: 0 0 0 1px hsl(var(--primary));
 }
 
 .border-glow-active {
     box-shadow:
-        0 0 0 2px var(--hulu-green),
-        0 0 10px rgba(28, 231, 131, 0.3);
+        0 0 0 2px hsl(var(--primary)),
+        0 0 10px hsl(var(--primary) / 0.3);
+}
+
+/* shadcn/ui base layer compatibility */
+@layer base {
+    * {
+        border-color: hsl(var(--border));
+    }
+
+    body {
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+    }
 }

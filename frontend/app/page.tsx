@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import ConnectionStatus from "../components/ConnectionStatus";
-import NavigationTabs from "../components/NavigationTabs";
-import MediaControls from "../components/MediaControls";
-import VirtualTrackpad from "../components/VirtualTrackpad";
-import VirtualKeyboard from "../components/VirtualKeyboard";
-import WebsiteShortcuts from "../components/WebsiteShortcuts";
+import { ConnectionStatus } from "@/components/connection-status";
+import { NavigationTabs } from "@/components/navigation-tabs";
+import { MediaControls } from "@/components/media-controls";
+import { VirtualTrackpad } from "@/components/virtual-trackpad";
+import { VirtualKeyboard } from "@/components/virtual-keyboard";
+import { WebsiteShortcuts } from "@/components/website-shortcuts";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Gamepad2, Wifi, WifiOff } from "lucide-react";
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
@@ -17,12 +20,10 @@ export default function Home() {
   const handleConnect = useCallback(
     async (ip: string) => {
       try {
-        // Close existing connection
         if (websocket) {
           websocket.close();
         }
 
-        // Create new WebSocket connection
         const ws = new WebSocket(`ws://${ip}:8080`);
 
         ws.onopen = () => {
@@ -50,7 +51,6 @@ export default function Home() {
           try {
             const message = JSON.parse(event.data);
             console.log("Received message:", message);
-            // Handle server responses here
           } catch (error) {
             console.error("Failed to parse message:", error);
           }
@@ -89,7 +89,6 @@ export default function Home() {
     [websocket],
   );
 
-  // Command handlers
   const handleMouseMove = useCallback(
     (deltaX: number, deltaY: number) => {
       sendCommand({ type: "mouse_move", deltaX, deltaY });
@@ -168,14 +167,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-hulu-black via-hulu-dark-gray to-hulu-gray">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <div className="container mx-auto px-4 py-6 max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-hulu-white mb-3 text-shadow">
-            🎮 CouchCommander
-          </h1>
-          <p className="text-hulu-text-gray text-base">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Gamepad2 className="h-10 w-10 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">
+              CouchCommander
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
             Control your laptop from your phone
           </p>
         </div>
@@ -195,31 +197,31 @@ export default function Home() {
         <div className="mb-6">{renderActiveTab()}</div>
 
         {/* Footer */}
-        <div className="text-center text-sm text-hulu-text-gray mt-8">
-          <div className="glass-card rounded-xl p-4">
-            <div className="mb-3">
-              Make sure your laptop and phone are on the same Wi-Fi network
-            </div>
-            <div className="flex items-center justify-center gap-6">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-3 h-3 rounded-full ${isConnected ? "bg-hulu-green pulse-green" : "bg-red-500"}`}
-                ></div>
-                <span className="font-medium">
-                  {isConnected ? "Online" : "Offline"}
-                </span>
-              </div>
-              {serverIP && (
-                <div className="flex items-center gap-2">
-                  <span>📡</span>
-                  <span className="font-mono text-sm text-hulu-green">
-                    {serverIP}
-                  </span>
-                </div>
-              )}
-            </div>
+        <Card className="p-4">
+          <div className="text-center text-sm text-muted-foreground mb-3">
+            Make sure your laptop and phone are on the same Wi-Fi network
           </div>
-        </div>
+          <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-destructive" />
+              )}
+              <Badge variant={isConnected ? "default" : "destructive"}>
+                {isConnected ? "Online" : "Offline"}
+              </Badge>
+            </div>
+            {serverIP && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm">📡</span>
+                <code className="text-sm font-mono text-primary">
+                  {serverIP}
+                </code>
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   );

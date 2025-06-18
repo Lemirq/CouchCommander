@@ -4,8 +4,8 @@
   "description": "Control your laptop's media playback, mouse, keyboard, and more from your phone over WiFi",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#3B82F6",
-  "theme_color": "#3B82F6",
+  "background_color": "#0b0c0f",
+  "theme_color": "#1c1c1c",
   "orientation": "portrait",
   "icons": [
     {
