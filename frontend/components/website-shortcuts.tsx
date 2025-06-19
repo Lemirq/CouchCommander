@@ -27,6 +27,18 @@ export function WebsiteShortcuts({
 
   const predefinedWebsites: WebsiteShortcut[] = [
     {
+      name: "WatchWave",
+      url: "https://watchwave-v2.vercel.app",
+      icon: "🎬",
+      color: "bg-black hover:bg-slate-800 text-white",
+    },
+    {
+      name: "AnimeKai",
+      url: "https://animekai.bz",
+      icon: "🍜",
+      color: "bg-[#E45F39] hover:bg-[#109746] text-white",
+    },
+    {
       name: "Netflix",
       url: "https://www.netflix.com",
       icon: "🎬",

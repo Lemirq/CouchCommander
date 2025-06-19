@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { ConnectionStatus } from "@/components/connection-status";
 import { NavigationTabs } from "@/components/navigation-tabs";
 import { MediaControls } from "@/components/media-controls";
@@ -11,8 +11,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Gamepad2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const ip = searchParams.get("ip");
+
   const [isConnected, setIsConnected] = useState(false);
   const [serverIP, setServerIP] = useState<string>();
   const [activeTab, setActiveTab] = useState("media");
@@ -67,6 +71,15 @@ export default function Home() {
     },
     [websocket],
   );
+
+  // useeffect that triggers the handle connect if search param ip has a value
+  useEffect(() => {
+    if (ip) {
+      if (!isConnected) {
+        handleConnect(ip);
+      }
+    }
+  }, [ip, handleConnect]);
 
   const handleDisconnect = useCallback(() => {
     if (websocket) {
@@ -185,7 +198,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
-      <div className="container mx-auto px-4 py-6 max-w-md">
+      <div
+        className="container mx-auto px-4 py-6 max-w-md"
+        style={{ overscrollBehavior: "none", touchAction: "pan-y" }}
+      >
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -241,5 +257,13 @@ export default function Home() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

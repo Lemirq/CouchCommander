@@ -1,4 +1,6 @@
+use base64::{engine::general_purpose, Engine as _};
 use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
+use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -181,12 +183,23 @@ async fn send_key(key_name: String) -> Result<CommandResponse, String> {
 // Text input command
 #[tauri::command]
 async fn text_input(text: String) -> Result<CommandResponse, String> {
+    // Validate input
+    if text.is_empty() {
+        return Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Empty text input".to_string(),
+        });
+    }
+
     let mut enigo =
         Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
 
-    enigo
-        .text(&text)
-        .map_err(|e| format!("Failed to type text: {:?}", e))?;
+    // Type character by character for better reliability
+    for ch in text.chars() {
+        enigo
+            .key(Key::Unicode(ch), Direction::Click)
+            .map_err(|e| format!("Failed to type character '{}': {:?}", ch, e))?;
+    }
 
     Ok(CommandResponse {
         status: "success".to_string(),
@@ -552,10 +565,112 @@ fn get_local_ip() -> Option<String> {
     None
 }
 
+// QR Code generation command
+#[tauri::command]
+async fn generate_qr_code(url: String) -> Result<String, String> {
+    let qr_code = QrCode::new(&url).map_err(|e| format!("Failed to generate QR code: {:?}", e))?;
+
+    // Render as simple image
+    let image = qr_code
+        .render::<char>()
+        .quiet_zone(false)
+        .module_dimensions(2, 1)
+        .build();
+
+    // Convert to SVG-like format for easier handling
+    let svg_data = format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 {} {}">
+        <rect width="100%" height="100%" fill="white"/>
+        <g fill="black">{}</g>
+        </svg>"#,
+        image.lines().count(),
+        image.lines().next().unwrap_or("").len(),
+        image
+            .lines()
+            .enumerate()
+            .map(|(y, line)| {
+                line.chars()
+                    .enumerate()
+                    .map(|(x, ch)| {
+                        if ch == '█' {
+                            format!(r#"<rect x="{}" y="{}" width="1" height="1"/>"#, x, y)
+                        } else {
+                            String::new()
+                        }
+                    })
+                    .collect::<String>()
+            })
+            .collect::<String>()
+    );
+
+    // Convert SVG to base64
+    let base64_string = general_purpose::STANDARD.encode(svg_data.as_bytes());
+    Ok(format!("data:image/svg+xml;base64,{}", base64_string))
+}
+
+// Start Next.js development server
+#[tauri::command]
+async fn start_nextjs_server() -> Result<CommandResponse, String> {
+    use std::process::Command;
+
+    // Try to start the Next.js server in the frontend directory
+    let mut cmd = Command::new("npm");
+    cmd.args(&["run", "dev"])
+        .current_dir("../frontend")
+        .spawn()
+        .map_err(|e| format!("Failed to start Next.js server: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: "Next.js server starting...".to_string(),
+    })
+}
+
+// Check if Next.js server is running
+#[tauri::command]
+async fn check_nextjs_server() -> Result<bool, String> {
+    use std::process::Command;
+
+    // Try to check if port 3000 is in use (Next.js default)
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("lsof")
+            .args(&["-i", ":3000"])
+            .output()
+            .map_err(|e| format!("Failed to check port: {:?}", e))?;
+
+        Ok(!output.stdout.is_empty())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        // For other platforms, we'll assume it's running if we can't check
+        Ok(true)
+    }
+}
+
+// Get connection info for QR code
+#[tauri::command]
+async fn get_connection_info() -> Result<serde_json::Value, String> {
+    let local_ip = get_local_ip().unwrap_or_else(|| "localhost".to_string());
+    let websocket_port = 8080; // Default WebSocket port
+    let web_app_port = 3000; // Next.js default port
+
+    let web_app_url = format!("http://{}:{}/?ip={}", local_ip, web_app_port, local_ip);
+    let websocket_url = format!("ws://{}:{}", local_ip, websocket_port);
+
+    Ok(serde_json::json!({
+        "local_ip": local_ip,
+        "websocket_port": websocket_port,
+        "web_app_port": web_app_port,
+        "web_app_url": web_app_url,
+        "websocket_url": websocket_url
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             play_pause,
@@ -578,7 +693,11 @@ pub fn run() {
             start_websocket_server,
             stop_websocket_server,
             get_server_status,
-            broadcast_message
+            broadcast_message,
+            generate_qr_code,
+            get_connection_info,
+            start_nextjs_server,
+            check_nextjs_server
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

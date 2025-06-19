@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,17 +26,23 @@ export function VirtualTrackpad({
   const [isScrolling, setIsScrolling] = useState(false);
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
   const [touches, setTouches] = useState<React.Touch[]>([]);
+  const moveThrottleRef = useRef<number | null>(null);
+  const [tapStartTime, setTapStartTime] = useState(0);
+  const [tapStartPosition, setTapStartPosition] = useState({ x: 0, y: 0 });
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (!isConnected) return;
 
       e.preventDefault();
+      e.stopPropagation();
       const touch = e.touches[0];
 
       if (e.touches.length === 1) {
         setIsDragging(true);
         setLastPosition({ x: touch.clientX, y: touch.clientY });
+        setTapStartTime(Date.now());
+        setTapStartPosition({ x: touch.clientX, y: touch.clientY });
       } else if (e.touches.length === 2) {
         setIsScrolling(true);
         setTouches(Array.from(e.touches) as React.Touch[]);
@@ -50,13 +56,14 @@ export function VirtualTrackpad({
       if (!isConnected) return;
 
       e.preventDefault();
+      e.stopPropagation();
 
       if (e.touches.length === 1 && isDragging) {
         const touch = e.touches[0];
         const deltaX = touch.clientX - lastPosition.x;
         const deltaY = touch.clientY - lastPosition.y;
 
-        const sensitivity = 2.5;
+        const sensitivity = 3.5;
         onMouseMove(deltaX * sensitivity, deltaY * sensitivity);
 
         setLastPosition({ x: touch.clientX, y: touch.clientY });
@@ -76,7 +83,7 @@ export function VirtualTrackpad({
             (currTouch1.clientY + currTouch2.clientY) / 2 -
             (prevTouch1.clientY + prevTouch2.clientY) / 2;
 
-          onScroll(deltaX, -deltaY * 3);
+          onScroll(deltaX * 2.5, -deltaY * 2.5);
         }
 
         setTouches(currentTouches as React.Touch[]);
@@ -98,11 +105,18 @@ export function VirtualTrackpad({
       if (!isConnected) return;
 
       e.preventDefault();
+      e.stopPropagation();
 
       if (e.touches.length === 0) {
         if (isDragging && !isScrolling) {
-          const touchDuration = Date.now() - (e.timeStamp || 0);
-          if (touchDuration < 300) {
+          // Improved tap detection with time and distance thresholds
+          const tapDuration = Date.now() - tapStartTime;
+          const deltaX = Math.abs(lastPosition.x - tapStartPosition.x);
+          const deltaY = Math.abs(lastPosition.y - tapStartPosition.y);
+          const totalDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+          // Consider it a tap if it's quick (<200ms) and didn't move much (<15px)
+          if (tapDuration < 200 && totalDistance < 15) {
             onMouseClick("left");
           }
         }
@@ -117,12 +131,24 @@ export function VirtualTrackpad({
         setLastPosition({ x: touch.clientX, y: touch.clientY });
       }
     },
-    [isConnected, isDragging, isScrolling, onMouseClick],
+    [
+      isConnected,
+      isDragging,
+      isScrolling,
+      onMouseClick,
+      lastPosition.x,
+      lastPosition.y,
+      tapStartPosition.x,
+      tapStartPosition.y,
+      tapStartTime,
+    ],
   );
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (!isConnected) return;
+      e.preventDefault();
+      e.stopPropagation();
       setIsDragging(true);
       setLastPosition({ x: e.clientX, y: e.clientY });
     },
@@ -133,17 +159,40 @@ export function VirtualTrackpad({
     (e: React.MouseEvent) => {
       if (!isConnected || !isDragging) return;
 
+      e.preventDefault();
+      e.stopPropagation();
+
       const deltaX = e.clientX - lastPosition.x;
       const deltaY = e.clientY - lastPosition.y;
 
-      onMouseMove(deltaX * 2.5, deltaY * 2.5);
+      onMouseMove(deltaX * 3.5, deltaY * 3.5);
+
       setLastPosition({ x: e.clientX, y: e.clientY });
     },
     [isConnected, isDragging, lastPosition, onMouseMove],
   );
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setIsDragging(false);
+
+    // Clear any pending throttled moves
+    if (moveThrottleRef.current) {
+      clearTimeout(moveThrottleRef.current);
+      moveThrottleRef.current = null;
+    }
+  }, []);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      if (moveThrottleRef.current) {
+        clearTimeout(moveThrottleRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -168,7 +217,8 @@ export function VirtualTrackpad({
         <div
           ref={trackpadRef}
           className={`
-            relative w-full h-80 rounded-lg border-2 border-dashed transition-all cursor-pointer
+            trackpad-area relative w-full h-80 rounded-lg border-2 border-dashed transition-all cursor-pointer
+            select-none touch-none overscroll-none
             ${
               isConnected
                 ? "border-primary/50 bg-muted/30 hover:bg-muted/50"
@@ -177,6 +227,15 @@ export function VirtualTrackpad({
             ${isDragging ? "bg-primary/10 border-primary" : ""}
             ${isScrolling ? "bg-primary/20 border-primary" : ""}
           `}
+          style={{
+            touchAction: "none",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            MozUserSelect: "none",
+            msUserSelect: "none",
+            WebkitTouchCallout: "none",
+            WebkitTapHighlightColor: "transparent",
+          }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -184,6 +243,8 @@ export function VirtualTrackpad({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onContextMenu={(e) => e.preventDefault()}
+          onDragStart={(e) => e.preventDefault()}
         >
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
             {!isConnected ? (

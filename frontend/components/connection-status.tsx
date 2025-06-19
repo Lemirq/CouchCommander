@@ -21,7 +21,7 @@ export function ConnectionStatus({
   onConnect,
   onDisconnect,
 }: ConnectionStatusProps) {
-  const [ipInput, setIpInput] = useState("");
+  const [ipInput, setIpInput] = useState("192.168.2.50");
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {

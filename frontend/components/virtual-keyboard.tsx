@@ -79,16 +79,16 @@ export function VirtualKeyboard({
           onKeyPress(" ");
           break;
         case "enter":
-          onKeyPress("Enter");
+          onKeyPress("return");
           break;
         case "backspace":
-          onKeyPress("BackSpace");
+          onKeyPress("backspace");
           break;
         case "tab":
-          onKeyPress("Tab");
+          onKeyPress("tab");
           break;
         case "escape":
-          onKeyPress("Escape");
+          onKeyPress("escape");
           break;
         default:
           onKeyPress(key);
@@ -127,7 +127,7 @@ export function VirtualKeyboard({
       disabled={!isConnected}
       variant="outline"
       size="sm"
-      className={`min-h-12 ${extraClasses}`}
+      className={`min-h-12 p-0! ${extraClasses}`}
     >
       {(isShift || isCapsLock) && key.match(/^[a-z]$/)
         ? key.toUpperCase()
@@ -227,7 +227,18 @@ export function VirtualKeyboard({
           <TabsContent value="functions" className="space-y-2 mt-4">
             {functionKeys.map((row, rowIndex) => (
               <div key={rowIndex} className="flex gap-1 justify-center">
-                {row.map((key) => renderKey(key, "text-xs"))}
+                {row.map((key) => (
+                  <Button
+                    key={key}
+                    onClick={() => onKeyPress(key.toLowerCase())}
+                    disabled={!isConnected}
+                    variant="outline"
+                    size="sm"
+                    className="min-h-12 p-0 text-xs"
+                  >
+                    {key}
+                  </Button>
+                ))}
               </div>
             ))}
           </TabsContent>
@@ -247,7 +258,7 @@ export function VirtualKeyboard({
             <div className="grid grid-cols-3 gap-1 w-32">
               <div></div>
               <Button
-                onClick={() => handleSpecialKey("ArrowUp")}
+                onClick={() => handleSpecialKey("up")}
                 disabled={!isConnected}
                 variant="outline"
                 size="sm"
@@ -257,7 +268,7 @@ export function VirtualKeyboard({
               </Button>
               <div></div>
               <Button
-                onClick={() => handleSpecialKey("ArrowLeft")}
+                onClick={() => handleSpecialKey("left")}
                 disabled={!isConnected}
                 variant="outline"
                 size="sm"
@@ -266,7 +277,7 @@ export function VirtualKeyboard({
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <Button
-                onClick={() => handleSpecialKey("ArrowDown")}
+                onClick={() => handleSpecialKey("down")}
                 disabled={!isConnected}
                 variant="outline"
                 size="sm"
@@ -275,7 +286,7 @@ export function VirtualKeyboard({
                 <ArrowDown className="h-4 w-4" />
               </Button>
               <Button
-                onClick={() => handleSpecialKey("ArrowRight")}
+                onClick={() => handleSpecialKey("right")}
                 disabled={!isConnected}
                 variant="outline"
                 size="sm"

@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "start:frontend": "cd ../frontend && npm run dev",
+    "start:both": "concurrently \"npm run start:frontend\" \"npm run tauri:dev\""
   },
   "dependencies": {
     "react": "^18.3.1",

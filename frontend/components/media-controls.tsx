@@ -9,7 +9,6 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Square,
   VolumeX,
   Volume1,
   Volume2,
@@ -56,7 +55,6 @@ export function MediaControls({ onCommand, isConnected }: MediaControlsProps) {
     { command: "media_previous", label: "Previous", icon: SkipBack },
     { command: "play_pause", label: "Play/Pause", icon: Play },
     { command: "media_next", label: "Next", icon: SkipForward },
-    { command: "stop", label: "Stop", icon: Square }, // Note: stop command not implemented in backend yet
   ];
 
   return (
@@ -70,7 +68,7 @@ export function MediaControls({ onCommand, isConnected }: MediaControlsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {mediaButtons.map((button) => {
               const Icon = button.icon;
               return (
