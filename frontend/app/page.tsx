@@ -44,10 +44,14 @@ function HomeContent() {
           setServerIP(undefined);
           setWebsocket(null);
           console.log("Disconnected from server");
+          toast.warning("Disconnected from server");
         };
 
         ws.onerror = (error) => {
           console.error("WebSocket error:", error);
+          toast.error("WebSocket error", {
+            description: error.message,
+          });
           setIsConnected(false);
           setServerIP(undefined);
           setWebsocket(null);
@@ -66,7 +70,10 @@ function HomeContent() {
         };
       } catch (error) {
         console.error("Failed to connect:", error);
-        throw error;
+        toast.error("Failed to connect", {
+          description: error.message,
+        });
+        // throw error;
       }
     },
     [websocket],
@@ -79,7 +86,7 @@ function HomeContent() {
         handleConnect(ip);
       }
     }
-  }, [ip, handleConnect]);
+  }, [ip, handleConnect, isConnected]);
 
   const handleDisconnect = useCallback(() => {
     if (websocket) {

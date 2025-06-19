@@ -23,6 +23,9 @@ function App() {
     null,
   );
   const [qrCodeData, setQrCodeData] = useState<string>("");
+  useEffect(() => {
+    console.log(qrCodeData);
+  }, [qrCodeData]);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [nextJsRunning, setNextJsRunning] = useState(false);

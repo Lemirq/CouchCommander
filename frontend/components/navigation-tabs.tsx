@@ -44,7 +44,7 @@ export function NavigationTabs({
             <TabsTrigger
               key={tab.id}
               value={tab.id}
-              className="flex border flex-col gap-2 py-3 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex flex-col gap-2 py-3 px-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Icon className="h-5 w-5" />
               <span className="text-xs font-medium">{tab.label}</span>

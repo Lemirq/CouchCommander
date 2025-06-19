@@ -3,6 +3,7 @@ use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Se
 use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
 
 mod websocket;
@@ -26,6 +27,18 @@ pub struct ServerStatus {
 static mut WEBSOCKET_SERVER: Option<Arc<WebSocketServer>> = None;
 static mut RUNTIME: Option<Arc<Runtime>> = None;
 
+// Helper function to create Enigo instances (avoiding static due to Send issues)
+fn create_enigo() -> Result<Enigo, String> {
+    Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create Enigo: {:?}", e))
+}
+
+// Rate limiting for text input
+const TEXT_INPUT_MIN_INTERVAL: Duration = Duration::from_millis(100);
+static TEXT_INPUT_SEMAPHORE: std::sync::OnceLock<tokio::sync::Semaphore> =
+    std::sync::OnceLock::new();
+static TEXT_INPUT_RATE_LIMITER: std::sync::OnceLock<tokio::sync::Mutex<Option<Instant>>> =
+    std::sync::OnceLock::new();
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -35,240 +48,390 @@ fn greet(name: &str) -> String {
 // Simple media control commands
 #[tauri::command]
 async fn play_pause() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    println!("Executing play_pause command");
 
-    enigo
-        .key(Key::Space, Direction::Click)
-        .map_err(|e| format!("Failed to send play/pause key: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Play/pause command sent".to_string(),
+        enigo.key(Key::Space, Direction::Click).map_err(|e| {
+            eprintln!("Failed to send play/pause key: {:?}", e);
+            format!("Failed to send play/pause key: {:?}", e)
+        })?;
+
+        println!("Play/pause command executed successfully");
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Play/pause command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Play/pause task panicked: {:?}", e);
+        "Play/pause operation failed".to_string()
+    })?
 }
 
 #[tauri::command]
 async fn media_previous() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    enigo
-        .key(Key::LeftArrow, Direction::Click)
-        .map_err(|e| format!("Failed to send previous key: {:?}", e))?;
+        enigo
+            .key(Key::Unicode('j'), Direction::Click) // Previous/rewind key
+            .map_err(|e| format!("Failed to send media previous key: {:?}", e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Previous track command sent".to_string(),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Media previous command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Media previous task panicked: {:?}", e);
+        "Media previous operation failed".to_string()
+    })?
 }
 
 #[tauri::command]
 async fn media_next() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    enigo
-        .key(Key::RightArrow, Direction::Click)
-        .map_err(|e| format!("Failed to send next key: {:?}", e))?;
+        enigo
+            .key(Key::Unicode('l'), Direction::Click) // Next/fast forward key
+            .map_err(|e| format!("Failed to send media next key: {:?}", e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Next track command sent".to_string(),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Media next command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Media next task panicked: {:?}", e);
+        "Media next operation failed".to_string()
+    })?
 }
 
 #[tauri::command]
 async fn volume_up() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    enigo
-        .key(Key::VolumeUp, Direction::Click)
-        .map_err(|e| format!("Failed to send volume up key: {:?}", e))?;
+        enigo
+            .key(Key::VolumeUp, Direction::Click)
+            .map_err(|e| format!("Failed to send volume up key: {:?}", e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Volume up command sent".to_string(),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Volume up command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Volume up task panicked: {:?}", e);
+        "Volume up operation failed".to_string()
+    })?
 }
 
 #[tauri::command]
 async fn volume_down() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    enigo
-        .key(Key::VolumeDown, Direction::Click)
-        .map_err(|e| format!("Failed to send volume down key: {:?}", e))?;
+        enigo
+            .key(Key::VolumeDown, Direction::Click)
+            .map_err(|e| format!("Failed to send volume down key: {:?}", e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Volume down command sent".to_string(),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Volume down command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Volume down task panicked: {:?}", e);
+        "Volume down operation failed".to_string()
+    })?
 }
 
 #[tauri::command]
 async fn volume_mute() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    enigo
-        .key(Key::VolumeMute, Direction::Click)
-        .map_err(|e| format!("Failed to send volume mute key: {:?}", e))?;
+        enigo
+            .key(Key::VolumeMute, Direction::Click)
+            .map_err(|e| format!("Failed to send volume mute key: {:?}", e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Mute command sent".to_string(),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Volume mute command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Volume mute task panicked: {:?}", e);
+        "Volume mute operation failed".to_string()
+    })?
 }
 
 // Generic key sending command for flexibility
 #[tauri::command]
 async fn send_key(key_name: String) -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    let key = match key_name.to_lowercase().as_str() {
-        "space" => Key::Space,
-        "enter" | "return" => Key::Return,
-        "escape" | "esc" => Key::Escape,
-        "up" => Key::UpArrow,
-        "down" => Key::DownArrow,
-        "left" => Key::LeftArrow,
-        "right" => Key::RightArrow,
-        "backspace" => Key::Backspace,
-        "tab" => Key::Tab,
-        "shift" => Key::Shift,
-        "ctrl" | "control" => Key::Control,
-        "alt" => Key::Alt,
-        "cmd" | "meta" => Key::Meta,
-        "f1" => Key::F1,
-        "f2" => Key::F2,
-        "f3" => Key::F3,
-        "f4" => Key::F4,
-        "f5" => Key::F5,
-        "f6" => Key::F6,
-        "f7" => Key::F7,
-        "f8" => Key::F8,
-        "f9" => Key::F9,
-        "f10" => Key::F10,
-        "f11" => Key::F11,
-        "f12" => Key::F12,
-        "f" => Key::Unicode('f'), // Fullscreen in many players
-        "k" => Key::Unicode('k'), // Pause/play in YouTube
-        "j" => Key::Unicode('j'), // Rewind in YouTube
-        "l" => Key::Unicode('l'), // Fast forward in YouTube
-        // Single character keys
-        _ => {
-            if key_name.len() == 1 {
-                let ch = key_name.chars().next().unwrap();
-                Key::Unicode(ch)
-            } else {
-                return Err(format!("Unknown key: {}", key_name));
+        let key = match key_name.to_lowercase().as_str() {
+            "space" => Key::Space,
+            "enter" | "return" => Key::Return,
+            "escape" | "esc" => Key::Escape,
+            "up" => Key::UpArrow,
+            "down" => Key::DownArrow,
+            "left" => Key::LeftArrow,
+            "right" => Key::RightArrow,
+            "backspace" => Key::Backspace,
+            "tab" => Key::Tab,
+            "shift" => Key::Shift,
+            "ctrl" | "control" => Key::Control,
+            "alt" => Key::Alt,
+            "cmd" | "meta" => Key::Meta,
+            "f1" => Key::F1,
+            "f2" => Key::F2,
+            "f3" => Key::F3,
+            "f4" => Key::F4,
+            "f5" => Key::F5,
+            "f6" => Key::F6,
+            "f7" => Key::F7,
+            "f8" => Key::F8,
+            "f9" => Key::F9,
+            "f10" => Key::F10,
+            "f11" => Key::F11,
+            "f12" => Key::F12,
+            "f" => Key::Unicode('f'), // Fullscreen in many players
+            "k" => Key::Unicode('k'), // Pause/play in YouTube
+            "j" => Key::Unicode('j'), // Rewind in YouTube
+            "l" => Key::Unicode('l'), // Fast forward in YouTube
+            // Single character keys
+            _ => {
+                if key_name.len() == 1 {
+                    let ch = key_name.chars().next().unwrap();
+                    Key::Unicode(ch)
+                } else {
+                    return Err(format!("Unknown key: {}", key_name));
+                }
             }
-        }
-    };
+        };
 
-    enigo
-        .key(key, Direction::Click)
-        .map_err(|e| format!("Failed to send key: {:?}", e))?;
+        enigo
+            .key(key, Direction::Click)
+            .map_err(|e| format!("Failed to send key '{}': {:?}", key_name, e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: format!("Key '{}' sent successfully", key_name),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: format!("Key '{}' sent successfully", key_name),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Send key task panicked: {:?}", e);
+        "Send key operation failed".to_string()
+    })?
 }
 
-// Text input command
+// Test command for debugging text input
+#[tauri::command]
+async fn test_text_input() -> Result<CommandResponse, String> {
+    println!("Testing text input with simple text");
+
+    let test_text = "Hello World! ❤️";
+    match text_input(test_text.to_string()).await {
+        Ok(response) => {
+            println!("Test successful: {:?}", response);
+            Ok(CommandResponse {
+                status: "success".to_string(),
+                message: format!("Test completed: {}", response.message),
+            })
+        }
+        Err(e) => {
+            eprintln!("Test failed: {}", e);
+            Err(format!("Test failed: {}", e))
+        }
+    }
+}
+
+// Text input command - using Enigo best practices with shared instance and text() method
 #[tauri::command]
 async fn text_input(text: String) -> Result<CommandResponse, String> {
+    println!(
+        "Executing text_input command with text length: {}",
+        text.len()
+    );
+
     // Validate input
     if text.is_empty() {
+        println!("Empty text input provided");
         return Ok(CommandResponse {
             status: "success".to_string(),
             message: "Empty text input".to_string(),
         });
     }
 
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
-
-    // Type character by character for better reliability
-    for ch in text.chars() {
-        enigo
-            .key(Key::Unicode(ch), Direction::Click)
-            .map_err(|e| format!("Failed to type character '{}': {:?}", ch, e))?;
+    // Limit text length to prevent overwhelming the system
+    if text.len() > 1000 {
+        eprintln!("Text input too long: {} characters (max 1000)", text.len());
+        return Err("Text input too long (max 1000 characters)".to_string());
     }
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: format!("Text '{}' input successfully", text),
+    // Rate limiting check
+    {
+        let rate_limiter = TEXT_INPUT_RATE_LIMITER.get_or_init(|| tokio::sync::Mutex::new(None));
+        let mut last_call = rate_limiter.lock().await;
+        if let Some(last_time) = *last_call {
+            let elapsed = last_time.elapsed();
+            if elapsed < TEXT_INPUT_MIN_INTERVAL {
+                let wait_time = TEXT_INPUT_MIN_INTERVAL - elapsed;
+                println!("Rate limiting text input, waiting {:?}", wait_time);
+                drop(last_call);
+                tokio::time::sleep(wait_time).await;
+                last_call = rate_limiter.lock().await;
+            }
+        }
+        *last_call = Some(Instant::now());
+        drop(last_call);
+    }
+
+    // Limit concurrent operations
+    let semaphore = TEXT_INPUT_SEMAPHORE.get_or_init(|| tokio::sync::Semaphore::new(1));
+    let _permit = match semaphore.try_acquire() {
+        Ok(permit) => permit,
+        Err(_) => {
+            eprintln!("Text input operation already in progress");
+            return Err("System busy, please try again".to_string());
+        }
+    };
+
+    // Process text in blocking task using the global shared Enigo instance
+    let result = tokio::task::spawn_blocking(move || {
+        println!("Creating new Enigo instance for text input");
+
+        let mut enigo = create_enigo()?;
+
+        println!("Starting to type text: \"{}\"", text);
+
+        // Use enigo.text() method instead of character-by-character (following keyboard.rs example)
+        match enigo.text(&text) {
+            Ok(_) => {
+                println!("Text input successful: {} characters", text.len());
+                Ok(CommandResponse {
+                    status: "success".to_string(),
+                    message: format!("Text input successful ({} characters)", text.len()),
+                })
+            }
+            Err(e) => {
+                eprintln!("Text input failed: {:?}", e);
+                Err(format!("Text input failed: {:?}", e))
+            }
+        }
     })
+    .await;
+
+    match result {
+        Ok(inner_result) => inner_result,
+        Err(e) => {
+            eprintln!("Text input task panicked: {:?}", e);
+            Err("Text input operation failed".to_string())
+        }
+    }
 }
 
 // Mouse movement command
 #[tauri::command]
 async fn mouse_move(delta_x: i32, delta_y: i32) -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    println!("Executing mouse_move command: ({}, {})", delta_x, delta_y);
 
-    enigo
-        .move_mouse(delta_x, delta_y, Coordinate::Rel)
-        .map_err(|e| format!("Failed to move mouse: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: format!("Mouse moved by ({}, {})", delta_x, delta_y),
+        enigo
+            .move_mouse(delta_x, delta_y, Coordinate::Rel)
+            .map_err(|e| {
+                eprintln!(
+                    "Failed to move mouse by ({}, {}): {:?}",
+                    delta_x, delta_y, e
+                );
+                format!("Failed to move mouse: {:?}", e)
+            })?;
+
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: format!("Mouse moved by ({}, {})", delta_x, delta_y),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Mouse move task panicked: {:?}", e);
+        "Mouse move operation failed".to_string()
+    })?
 }
 
 // Mouse click command
 #[tauri::command]
 async fn mouse_click(button: String) -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    let mouse_button = match button.to_lowercase().as_str() {
-        "left" => Button::Left,
-        "right" => Button::Right,
-        "middle" => Button::Middle,
-        _ => return Err(format!("Unknown mouse button: {}", button)),
-    };
+        let mouse_button = match button.as_str() {
+            "left" => Button::Left,
+            "right" => Button::Right,
+            "middle" => Button::Middle,
+            _ => return Err(format!("Unsupported mouse button: {}", button)),
+        };
 
-    enigo
-        .button(mouse_button, Direction::Click)
-        .map_err(|e| format!("Failed to click mouse: {:?}", e))?;
+        enigo
+            .button(mouse_button, Direction::Click)
+            .map_err(|e| format!("Failed to click mouse button '{}': {:?}", button, e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: format!("{} mouse button clicked", button),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: format!("Mouse {} clicked", button),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Mouse click task panicked: {:?}", e);
+        "Mouse click operation failed".to_string()
+    })?
 }
 
 // Scroll command
 #[tauri::command]
 async fn scroll(delta_x: i32, delta_y: i32) -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    // For scrolling, we'll use scroll method with proper Axis
-    if delta_y != 0 {
-        enigo
-            .scroll(delta_y, Axis::Vertical)
-            .map_err(|e| format!("Failed to scroll vertically: {:?}", e))?;
-    }
+        if delta_x != 0 {
+            enigo
+                .scroll(delta_x, Axis::Horizontal)
+                .map_err(|e| format!("Failed to scroll horizontally: {:?}", e))?;
+        }
 
-    if delta_x != 0 {
-        enigo
-            .scroll(delta_x, Axis::Horizontal)
-            .map_err(|e| format!("Failed to scroll horizontally: {:?}", e))?;
-    }
+        if delta_y != 0 {
+            enigo
+                .scroll(delta_y, Axis::Vertical)
+                .map_err(|e| format!("Failed to scroll vertically: {:?}", e))?;
+        }
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: format!("Scrolled by ({}, {})", delta_x, delta_y),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: format!("Scrolled by ({}, {})", delta_x, delta_y),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Scroll task panicked: {:?}", e);
+        "Scroll operation failed".to_string()
+    })?
 }
 
 // Volume set command
@@ -396,17 +559,23 @@ async fn brightness_down() -> Result<CommandResponse, String> {
 // Media stop command
 #[tauri::command]
 async fn media_stop() -> Result<CommandResponse, String> {
-    let mut enigo =
-        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+    tokio::task::spawn_blocking(move || {
+        let mut enigo = create_enigo()?;
 
-    enigo
-        .key(Key::Unicode('s'), Direction::Click)
-        .map_err(|e| format!("Failed to send stop key: {:?}", e))?;
+        enigo
+            .key(Key::Unicode('k'), Direction::Click) // Stop/pause key
+            .map_err(|e| format!("Failed to send media stop key: {:?}", e))?;
 
-    Ok(CommandResponse {
-        status: "success".to_string(),
-        message: "Media stop command sent".to_string(),
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: "Media stop command sent".to_string(),
+        })
     })
+    .await
+    .map_err(|e| {
+        eprintln!("Media stop task panicked: {:?}", e);
+        "Media stop operation failed".to_string()
+    })?
 }
 
 // Open website command
@@ -681,6 +850,7 @@ pub fn run() {
             volume_mute,
             send_key,
             text_input,
+            test_text_input,
             mouse_move,
             mouse_click,
             scroll,

@@ -2,6 +2,9 @@
 
 **Remote control your computer from your phone with a professional, modern interface.**
 
+I keep having this problem where I sit down to watch a movie/tv show/anime on my bed through my monitor. And my laptop and monitor are realllyyy far away. Now I can take my wireless keyboard to bed to control it, but this is wayyy too annoying. So I created CouchCommander.
+
+
 CouchCommander is a cross-platform desktop application that lets you control your computer's media playback, mouse, keyboard, and more from your smartphone over Wi-Fi. Perfect for when you're relaxing on the couch and need to control your laptop!
 
 ## ✨ Features

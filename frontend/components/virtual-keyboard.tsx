@@ -31,6 +31,8 @@ export function VirtualKeyboard({
   const [textInput, setTextInput] = useState("");
   const [isShift, setIsShift] = useState(false);
   const [isCapsLock, setCapsLock] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastResult, setLastResult] = useState<string | null>(null);
 
   const handleKeyPress = useCallback(
     (key: string) => {
@@ -97,10 +99,23 @@ export function VirtualKeyboard({
     [isConnected, isShift, isCapsLock, onKeyPress],
   );
 
-  const handleTextSubmit = () => {
-    if (!isConnected || !textInput.trim()) return;
-    onTextInput(textInput);
-    setTextInput("");
+  const handleTextSubmit = async () => {
+    if (!isConnected || !textInput.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setLastResult(null);
+
+    try {
+      await onTextInput(textInput);
+      setLastResult("Text sent successfully!");
+      setTextInput("");
+    } catch (error) {
+      setLastResult("Failed to send text. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+      // Clear result after 3 seconds
+      setTimeout(() => setLastResult(null), 3000);
+    }
   };
 
   const letterKeys = [
@@ -127,7 +142,7 @@ export function VirtualKeyboard({
       disabled={!isConnected}
       variant="outline"
       size="sm"
-      className={`min-h-12 p-0! ${extraClasses}`}
+      className={`min-h-12 min-w-0! w-full ${extraClasses}`}
     >
       {(isShift || isCapsLock) && key.match(/^[a-z]$/)
         ? key.toUpperCase()
@@ -146,7 +161,7 @@ export function VirtualKeyboard({
           : "secondary"
       }
       size="sm"
-      className={`min-h-12 ${extraClasses}`}
+      className={`min-h-12 size-10! ${extraClasses}`}
     >
       {label}
     </Button>
@@ -183,28 +198,47 @@ export function VirtualKeyboard({
               onChange={(e) => setTextInput(e.target.value)}
               placeholder="Type text to send..."
               onKeyPress={(e) => e.key === "Enter" && handleTextSubmit()}
-              disabled={!isConnected}
+              disabled={!isConnected || isSubmitting}
+              maxLength={1000}
             />
             <Button
               onClick={handleTextSubmit}
-              disabled={!isConnected || !textInput.trim()}
+              disabled={!isConnected || !textInput.trim() || isSubmitting}
             >
-              <Send className="h-4 w-4" />
+              {isSubmitting ? "..." : <Send className="h-4 w-4" />}
             </Button>
+          </div>
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{textInput.length}/1000 characters</span>
+            {lastResult && (
+              <span
+                className={
+                  textInput.length > 1000 ? "text-red-500" : "text-green-500"
+                }
+              >
+                {lastResult}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Virtual Keyboard */}
         <Tabs defaultValue="letters" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="letters">ABC</TabsTrigger>
-            <TabsTrigger value="numbers">123</TabsTrigger>
-            <TabsTrigger value="functions">F1-F12</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto p-0">
+            <TabsTrigger className="w-full" value="letters">
+              ABC
+            </TabsTrigger>
+            <TabsTrigger className="w-full" value="numbers">
+              123
+            </TabsTrigger>
+            <TabsTrigger className="w-full" value="functions">
+              F1-F12
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="letters" className="space-y-2 mt-4">
+          <TabsContent value="letters" className="space-y-2 mt-4 w-full">
             {letterKeys.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex gap-1 justify-center">
+              <div key={rowIndex} className="flex gap-0.5 justify-center">
                 {rowIndex === 1 && <div className="w-6" />}
                 {row.map((key) => renderKey(key))}
               </div>

@@ -90,11 +90,12 @@ export function ConnectionStatus({
                   disabled={isConnecting}
                 />
                 <Button
+                  size="sm"
                   onClick={handleConnect}
                   disabled={isConnecting || !ipInput.trim()}
                 >
                   {isConnecting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     "Connect"
                   )}

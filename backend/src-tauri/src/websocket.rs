@@ -106,39 +106,56 @@ async fn handle_connection(stream: TcpStream, addr: SocketAddr, clients: ClientC
     while let Some(msg) = ws_receiver.next().await {
         match msg {
             Ok(Message::Text(text)) => {
-                if let Ok(command) = serde_json::from_str::<WebSocketCommand>(&text) {
-                    let response = handle_command(command).await;
-                    let response_json = serde_json::to_string(&response).unwrap_or_else(|_| {
-                        serde_json::to_string(&WebSocketResponse {
+                // Wrap command handling in a catch-all error handler
+                let response = match serde_json::from_str::<WebSocketCommand>(&text) {
+                    Ok(command) => {
+                        // Use a timeout to prevent hanging on long operations
+                        match tokio::time::timeout(
+                            std::time::Duration::from_secs(30),
+                            handle_command(command),
+                        )
+                        .await
+                        {
+                            Ok(response) => response,
+                            Err(_) => WebSocketResponse {
+                                id: None,
+                                status: "error".to_string(),
+                                message: "Command timed out".to_string(),
+                                data: None,
+                            },
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to parse command: {}", e);
+                        WebSocketResponse {
                             id: None,
                             status: "error".to_string(),
-                            message: "Failed to serialize response".to_string(),
+                            message: format!("Invalid command format: {}", e),
                             data: None,
-                        })
-                        .unwrap()
-                    });
-
-                    // Send response back through the client's sender
-                    if let Some(sender) = {
-                        let clients_guard = clients.lock().unwrap();
-                        clients_guard.get(&client_id).cloned()
-                    } {
-                        let _ = sender.send(Message::Text(response_json));
+                        }
                     }
-                } else {
-                    let error_response = WebSocketResponse {
+                };
+
+                let response_json = serde_json::to_string(&response).unwrap_or_else(|e| {
+                    eprintln!("Failed to serialize response: {}", e);
+                    serde_json::to_string(&WebSocketResponse {
                         id: None,
                         status: "error".to_string(),
-                        message: "Invalid command format".to_string(),
+                        message: "Failed to serialize response".to_string(),
                         data: None,
-                    };
-                    let response_json = serde_json::to_string(&error_response).unwrap();
+                    })
+                    .unwrap_or_else(|_| {
+                        r#"{"status":"error","message":"Critical serialization error"}"#.to_string()
+                    })
+                });
 
-                    if let Some(sender) = {
-                        let clients_guard = clients.lock().unwrap();
-                        clients_guard.get(&client_id).cloned()
-                    } {
-                        let _ = sender.send(Message::Text(response_json));
+                // Send response back through the client's sender
+                if let Some(sender) = {
+                    let clients_guard = clients.lock().unwrap();
+                    clients_guard.get(&client_id).cloned()
+                } {
+                    if let Err(e) = sender.send(Message::Text(response_json)) {
+                        eprintln!("Failed to send response to client {}: {}", client_id, e);
                     }
                 }
             }
@@ -216,11 +233,44 @@ async fn handle_command(command: WebSocketCommand) -> WebSocketResponse {
         "text_input" => {
             if let Some(data) = &command.data {
                 if let Some(text) = data.get("text").and_then(|t| t.as_str()) {
-                    text_input(text.to_string())
+                    // Additional safety checks
+                    if text.is_empty() {
+                        Ok(crate::CommandResponse {
+                            status: "success".to_string(),
+                            message: "Empty text input ignored".to_string(),
+                        })
+                    } else if text.len() > 1000 {
+                        Ok(crate::CommandResponse {
+                            status: "error".to_string(),
+                            message: "Text too long (max 1000 characters)".to_string(),
+                        })
+                    } else {
+                        // Wrap in timeout to prevent hanging
+                        match tokio::time::timeout(
+                            std::time::Duration::from_secs(30),
+                            text_input(text.to_string()),
+                        )
                         .await
-                        .map_err(|e| e.to_string())
+                        {
+                            Ok(Ok(response)) => Ok(response),
+                            Ok(Err(e)) => {
+                                eprintln!("Text input error: {}", e);
+                                Ok(crate::CommandResponse {
+                                    status: "error".to_string(),
+                                    message: format!("Text input failed: {}", e),
+                                })
+                            }
+                            Err(_) => {
+                                eprintln!("Text input timeout for text: {}", text);
+                                Ok(crate::CommandResponse {
+                                    status: "error".to_string(),
+                                    message: "Text input operation timed out".to_string(),
+                                })
+                            }
+                        }
+                    }
                 } else {
-                    Err("Missing 'text' parameter".to_string())
+                    Err("Missing or invalid 'text' parameter".to_string())
                 }
             } else {
                 Err("Missing data for text_input command".to_string())

@@ -1,211 +1,290 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-	<head>
-		<title>CouchCommander WebSocket Test Client</title>
-		<style>
-			body {
-				font-family: Arial, sans-serif;
-				max-width: 800px;
-				margin: 0 auto;
-				padding: 20px;
-				background: #1a1a1a;
-				color: white;
-			}
-			.container {
-				background: #2a2a2a;
-				padding: 20px;
-				border-radius: 8px;
-				margin: 10px 0;
-			}
-			button {
-				background: #4caf50;
-				color: white;
-				border: none;
-				padding: 10px 15px;
-				margin: 5px;
-				border-radius: 4px;
-				cursor: pointer;
-			}
-			button:hover {
-				background: #45a049;
-			}
-			button:disabled {
-				background: #555;
-				cursor: not-allowed;
-			}
-			input {
-				padding: 8px;
-				margin: 5px;
-				border: 1px solid #555;
-				background: #333;
-				color: white;
-				border-radius: 4px;
-			}
-			#log {
-				background: #111;
-				padding: 10px;
-				border-radius: 4px;
-				height: 200px;
-				overflow-y: auto;
-				font-family: monospace;
-				font-size: 12px;
-			}
-			.status {
-				padding: 10px;
-				border-radius: 4px;
-				margin: 10px 0;
-			}
-			.connected {
-				background: #2e7d32;
-			}
-			.disconnected {
-				background: #c62828;
-			}
-		</style>
-	</head>
-	<body>
-		<h1>🛋️ CouchCommander WebSocket Test Client</h1>
+    <head>
+        <title>CouchCommander WebSocket Test Client</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background: #1a1a1a;
+                color: white;
+            }
+            .container {
+                background: #2a2a2a;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 10px 0;
+            }
+            button {
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                margin: 5px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #45a049;
+            }
+            button:disabled {
+                background: #555;
+                cursor: not-allowed;
+            }
+            input {
+                padding: 8px;
+                margin: 5px;
+                border: 1px solid #555;
+                background: #333;
+                color: white;
+                border-radius: 4px;
+            }
+            #log {
+                background: #111;
+                padding: 10px;
+                border-radius: 4px;
+                height: 200px;
+                overflow-y: auto;
+                font-family: monospace;
+                font-size: 12px;
+            }
+            .status {
+                padding: 10px;
+                border-radius: 4px;
+                margin: 10px 0;
+            }
+            .connected {
+                background: #2e7d32;
+            }
+            .disconnected {
+                background: #c62828;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🛋️ CouchCommander WebSocket Test Client</h1>
 
-		<div class="container">
-			<h2>Connection</h2>
-			<input type="text" id="serverUrl" placeholder="ws://192.168.1.100:8080" style="width: 300px" />
-			<button onclick="connect()">Connect</button>
-			<button onclick="disconnect()">Disconnect</button>
-			<div id="status" class="status disconnected">Disconnected</div>
-		</div>
+        <div class="container">
+            <h2>Connection</h2>
+            <input
+                type="text"
+                id="serverUrl"
+                placeholder="ws://192.168.1.100:8080"
+                style="width: 300px"
+            />
+            <button onclick="connect()">Connect</button>
+            <button onclick="disconnect()">Disconnect</button>
+            <div id="status" class="status disconnected">Disconnected</div>
+        </div>
 
-		<div class="container">
-			<h2>Media Controls</h2>
-			<button onclick="sendCommand('play_pause')">⏯️ Play/Pause</button>
-			<button onclick="sendCommand('media_previous')">⏮️ Previous</button>
-			<button onclick="sendCommand('media_next')">⏭️ Next</button>
-			<br />
-			<button onclick="sendCommand('volume_up')">🔊 Volume +</button>
-			<button onclick="sendCommand('volume_down')">🔉 Volume -</button>
-			<button onclick="sendCommand('volume_mute')">🔇 Mute</button>
-		</div>
+        <div class="container">
+            <h2>Media Controls</h2>
+            <button onclick="sendCommand('play_pause')">⏯️ Play/Pause</button>
+            <button onclick="sendCommand('media_previous')">⏮️ Previous</button>
+            <button onclick="sendCommand('media_next')">⏭️ Next</button>
+            <br />
+            <button onclick="sendCommand('volume_up')">🔊 Volume +</button>
+            <button onclick="sendCommand('volume_down')">🔉 Volume -</button>
+            <button onclick="sendCommand('volume_mute')">🔇 Mute</button>
+        </div>
 
-		<div class="container">
-			<h2>Custom Commands</h2>
-			<input type="text" id="customKey" placeholder="Key (e.g., 'f', 'space', 'escape')" />
-			<button onclick="sendKeyCommand()">Send Key</button>
-			<br />
-			<input type="text" id="customUrl" placeholder="URL (e.g., https://netflix.com)" style="width: 300px" />
-			<button onclick="sendUrlCommand()">Open Website</button>
-		</div>
+        <div class="container">
+            <h2>Text Input</h2>
+            <input
+                type="text"
+                id="textInput"
+                placeholder="Text to type (max 1000 chars)"
+                style="width: 400px"
+                maxlength="1000"
+            />
+            <button onclick="sendTextCommand()">Send Text</button>
+            <button onclick="testTextInput()">Test Text Input</button>
+            <div
+                id="textInputResult"
+                style="
+                    margin-top: 10px;
+                    padding: 5px;
+                    border-radius: 4px;
+                    display: none;
+                "
+            ></div>
+        </div>
 
-		<div class="container">
-			<h2>Log</h2>
-			<div id="log"></div>
-			<button onclick="clearLog()">Clear Log</button>
-		</div>
+        <div class="container">
+            <h2>Custom Commands</h2>
+            <input
+                type="text"
+                id="customKey"
+                placeholder="Key (e.g., 'f', 'space', 'escape')"
+            />
+            <button onclick="sendKeyCommand()">Send Key</button>
+            <br />
+            <input
+                type="text"
+                id="customUrl"
+                placeholder="URL (e.g., https://netflix.com)"
+                style="width: 300px"
+            />
+            <button onclick="sendUrlCommand()">Open Website</button>
+        </div>
 
-		<script>
-			let socket = null;
-			let messageId = 0;
+        <div class="container">
+            <h2>Log</h2>
+            <div id="log"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
 
-			function log(message) {
-				const logDiv = document.getElementById('log');
-				const timestamp = new Date().toLocaleTimeString();
-				logDiv.innerHTML += `[${timestamp}] ${message}\n`;
-				logDiv.scrollTop = logDiv.scrollHeight;
-			}
+        <script>
+            let socket = null;
+            let messageId = 0;
 
-			function updateStatus(connected) {
-				const statusDiv = document.getElementById('status');
-				if (connected) {
-					statusDiv.className = 'status connected';
-					statusDiv.textContent = 'Connected';
-				} else {
-					statusDiv.className = 'status disconnected';
-					statusDiv.textContent = 'Disconnected';
-				}
-			}
+            function log(message) {
+                const logDiv = document.getElementById("log");
+                const timestamp = new Date().toLocaleTimeString();
+                logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
 
-			function connect() {
-				const url = document.getElementById('serverUrl').value || 'ws://localhost:8080';
+            function updateStatus(connected) {
+                const statusDiv = document.getElementById("status");
+                if (connected) {
+                    statusDiv.className = "status connected";
+                    statusDiv.textContent = "Connected";
+                } else {
+                    statusDiv.className = "status disconnected";
+                    statusDiv.textContent = "Disconnected";
+                }
+            }
 
-				try {
-					socket = new WebSocket(url);
+            function connect() {
+                const url =
+                    document.getElementById("serverUrl").value ||
+                    "ws://localhost:8080";
 
-					socket.onopen = function (event) {
-						log('Connected to server');
-						updateStatus(true);
-					};
+                try {
+                    socket = new WebSocket(url);
 
-					socket.onmessage = function (event) {
-						const response = JSON.parse(event.data);
-						log(`Response: ${JSON.stringify(response, null, 2)}`);
-					};
+                    socket.onopen = function (event) {
+                        log("Connected to server");
+                        updateStatus(true);
+                    };
 
-					socket.onclose = function (event) {
-						log('Connection closed');
-						updateStatus(false);
-						socket = null;
-					};
+                    socket.onmessage = function (event) {
+                        const response = JSON.parse(event.data);
+                        log(`Response: ${JSON.stringify(response, null, 2)}`);
 
-					socket.onerror = function (error) {
-						log(`Error: ${error}`);
-						updateStatus(false);
-					};
-				} catch (error) {
-					log(`Connection failed: ${error}`);
-					updateStatus(false);
-				}
-			}
+                        // Show text input results
+                        if (
+                            response.id &&
+                            (response.id.includes("text_input") ||
+                                response.id.includes("test_text_input"))
+                        ) {
+                            const isError = response.status === "error";
+                            showTextInputResult(response.message, isError);
+                        }
+                    };
 
-			function disconnect() {
-				if (socket) {
-					socket.close();
-					socket = null;
-					log('Disconnected from server');
-					updateStatus(false);
-				}
-			}
+                    socket.onclose = function (event) {
+                        log("Connection closed");
+                        updateStatus(false);
+                        socket = null;
+                    };
 
-			function sendCommand(command, data = null) {
-				if (!socket || socket.readyState !== WebSocket.OPEN) {
-					log('Not connected to server');
-					return;
-				}
+                    socket.onerror = function (error) {
+                        log(`Error: ${error}`);
+                        updateStatus(false);
+                    };
+                } catch (error) {
+                    log(`Connection failed: ${error}`);
+                    updateStatus(false);
+                }
+            }
 
-				const message = {
-					id: (++messageId).toString(),
-					command: command,
-					data: data,
-				};
+            function disconnect() {
+                if (socket) {
+                    socket.close();
+                    socket = null;
+                    log("Disconnected from server");
+                    updateStatus(false);
+                }
+            }
 
-				socket.send(JSON.stringify(message));
-				log(`Sent: ${JSON.stringify(message)}`);
-			}
+            function sendCommand(command, data = null) {
+                if (!socket || socket.readyState !== WebSocket.OPEN) {
+                    log("Not connected to server");
+                    return;
+                }
 
-			function sendKeyCommand() {
-				const key = document.getElementById('customKey').value;
-				if (!key) {
-					log('Please enter a key');
-					return;
-				}
-				sendCommand('send_key', { key: key });
-			}
+                const message = {
+                    id: (++messageId).toString(),
+                    command: command,
+                    data: data,
+                };
 
-			function sendUrlCommand() {
-				const url = document.getElementById('customUrl').value;
-				if (!url) {
-					log('Please enter a URL');
-					return;
-				}
-				sendCommand('open_website', { url: url });
-			}
+                socket.send(JSON.stringify(message));
+                log(`Sent: ${JSON.stringify(message)}`);
+            }
 
-			function clearLog() {
-				document.getElementById('log').innerHTML = '';
-			}
+            function sendKeyCommand() {
+                const key = document.getElementById("customKey").value;
+                if (!key) {
+                    log("Please enter a key");
+                    return;
+                }
+                sendCommand("send_key", { key: key });
+            }
 
-			// Set default server URL based on current host
-			window.onload = function () {
-				const defaultUrl = `ws://${window.location.hostname || 'localhost'}:8080`;
-				document.getElementById('serverUrl').value = defaultUrl;
-			};
-		</script>
-	</body>
+            function sendUrlCommand() {
+                const url = document.getElementById("customUrl").value;
+                if (!url) {
+                    log("Please enter a URL");
+                    return;
+                }
+                sendCommand("open_website", { url: url });
+            }
+
+            function sendTextCommand() {
+                const text = document.getElementById("textInput").value;
+                if (!text) {
+                    log("Please enter text to send");
+                    return;
+                }
+                if (text.length > 1000) {
+                    log("Text too long (max 1000 characters)");
+                    return;
+                }
+                log(`Sending text: "${text}" (${text.length} chars)`);
+                sendCommand("text_input", { text: text });
+            }
+
+            function testTextInput() {
+                log("Running text input test...");
+                sendCommand("test_text_input", {});
+            }
+
+            function showTextInputResult(message, isError = false) {
+                const resultDiv = document.getElementById("textInputResult");
+                resultDiv.textContent = message;
+                resultDiv.style.display = "block";
+                resultDiv.style.backgroundColor = isError
+                    ? "#c62828"
+                    : "#2e7d32";
+                setTimeout(() => {
+                    resultDiv.style.display = "none";
+                }, 5000);
+            }
+
+            function clearLog() {
+                document.getElementById("log").innerHTML = "";
+            }
+
+            // Set default server URL based on current host
+            window.onload = function () {
+                const defaultUrl = `ws://${window.location.hostname || "localhost"}:8080`;
+                document.getElementById("serverUrl").value = defaultUrl;
+            };
+        </script>
+    </body>
 </html>
