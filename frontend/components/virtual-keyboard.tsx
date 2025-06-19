@@ -94,7 +94,7 @@ export function VirtualKeyboard({
           onKeyPress(key);
       }
     },
-    [isConnected, onKeyPress],
+    [isConnected, isShift, isCapsLock, onKeyPress],
   );
 
   const handleTextSubmit = () => {

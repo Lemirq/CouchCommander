@@ -1,10 +1,10 @@
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
-use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,7 +22,8 @@ pub struct WebSocketResponse {
     pub data: Option<serde_json::Value>,
 }
 
-pub type ClientConnections = Arc<Mutex<HashMap<String, tokio::sync::mpsc::UnboundedSender<Message>>>>;
+pub type ClientConnections =
+    Arc<Mutex<HashMap<String, tokio::sync::mpsc::UnboundedSender<Message>>>>;
 
 pub struct WebSocketServer {
     pub addr: SocketAddr,
@@ -33,7 +34,7 @@ impl WebSocketServer {
     pub fn new(port: u16) -> Self {
         let addr = SocketAddr::from(([0, 0, 0, 0], port));
         let clients = Arc::new(Mutex::new(HashMap::new()));
-        
+
         Self { addr, clients }
     }
 
@@ -52,11 +53,11 @@ impl WebSocketServer {
     pub fn broadcast_message(&self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
         let clients = self.clients.lock().unwrap();
         let msg = Message::Text(message.to_string());
-        
+
         for (_, tx) in clients.iter() {
             let _ = tx.send(msg.clone());
         }
-        
+
         Ok(())
     }
 
@@ -65,13 +66,9 @@ impl WebSocketServer {
     }
 }
 
-async fn handle_connection(
-    stream: TcpStream,
-    addr: SocketAddr,
-    clients: ClientConnections,
-) {
+async fn handle_connection(stream: TcpStream, addr: SocketAddr, clients: ClientConnections) {
     println!("New WebSocket connection: {}", addr);
-    
+
     let ws_stream = match accept_async(stream).await {
         Ok(ws) => ws,
         Err(e) => {
@@ -117,9 +114,10 @@ async fn handle_connection(
                             status: "error".to_string(),
                             message: "Failed to serialize response".to_string(),
                             data: None,
-                        }).unwrap()
+                        })
+                        .unwrap()
                     });
-                    
+
                     // Send response back through the client's sender
                     if let Some(sender) = {
                         let clients_guard = clients.lock().unwrap();
@@ -135,7 +133,7 @@ async fn handle_connection(
                         data: None,
                     };
                     let response_json = serde_json::to_string(&error_response).unwrap();
-                    
+
                     if let Some(sender) = {
                         let clients_guard = clients.lock().unwrap();
                         clients_guard.get(&client_id).cloned()
@@ -161,20 +159,49 @@ async fn handle_connection(
         let mut clients_guard = clients.lock().unwrap();
         clients_guard.remove(&client_id);
     }
-    
+
     println!("Client {} connection closed", addr);
 }
 
 async fn handle_command(command: WebSocketCommand) -> WebSocketResponse {
-    use crate::{play_pause, media_previous, media_next, volume_up, volume_down, volume_mute, send_key, open_website};
-    
+    use crate::{
+        brightness_down, brightness_set, brightness_up, media_next, media_previous, media_stop,
+        mouse_click, mouse_move, open_website, play_pause, scroll, send_key, text_input,
+        volume_down, volume_mute, volume_set, volume_up,
+    };
+
     let result = match command.command.as_str() {
         "play_pause" => play_pause().await.map_err(|e| e.to_string()),
         "media_previous" => media_previous().await.map_err(|e| e.to_string()),
         "media_next" => media_next().await.map_err(|e| e.to_string()),
+        "media_stop" => media_stop().await.map_err(|e| e.to_string()),
         "volume_up" => volume_up().await.map_err(|e| e.to_string()),
         "volume_down" => volume_down().await.map_err(|e| e.to_string()),
         "volume_mute" => volume_mute().await.map_err(|e| e.to_string()),
+        "volume_set" => {
+            if let Some(data) = &command.data {
+                if let Some(value) = data.get("value").and_then(|v| v.as_u64()) {
+                    volume_set(value as u8).await.map_err(|e| e.to_string())
+                } else {
+                    Err("Missing or invalid 'value' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for volume_set command".to_string())
+            }
+        }
+        "brightness_up" => brightness_up().await.map_err(|e| e.to_string()),
+        "brightness_down" => brightness_down().await.map_err(|e| e.to_string()),
+        "brightness_set" => {
+            if let Some(data) = &command.data {
+                if let Some(value) = data.get("value").and_then(|v| v.as_u64()) {
+                    brightness_set(value as u8).await.map_err(|e| e.to_string())
+                } else {
+                    Err("Missing or invalid 'value' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for brightness_set command".to_string())
+            }
+        }
         "send_key" => {
             if let Some(data) = &command.data {
                 if let Some(key) = data.get("key").and_then(|k| k.as_str()) {
@@ -186,10 +213,58 @@ async fn handle_command(command: WebSocketCommand) -> WebSocketResponse {
                 Err("Missing data for send_key command".to_string())
             }
         }
+        "text_input" => {
+            if let Some(data) = &command.data {
+                if let Some(text) = data.get("text").and_then(|t| t.as_str()) {
+                    text_input(text.to_string())
+                        .await
+                        .map_err(|e| e.to_string())
+                } else {
+                    Err("Missing 'text' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for text_input command".to_string())
+            }
+        }
+        "mouse_move" => {
+            if let Some(data) = &command.data {
+                let delta_x = data.get("deltaX").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                let delta_y = data.get("deltaY").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                mouse_move(delta_x, delta_y)
+                    .await
+                    .map_err(|e| e.to_string())
+            } else {
+                Err("Missing data for mouse_move command".to_string())
+            }
+        }
+        "mouse_click" => {
+            if let Some(data) = &command.data {
+                if let Some(button) = data.get("button").and_then(|b| b.as_str()) {
+                    mouse_click(button.to_string())
+                        .await
+                        .map_err(|e| e.to_string())
+                } else {
+                    Err("Missing 'button' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for mouse_click command".to_string())
+            }
+        }
+        "scroll" => {
+            if let Some(data) = &command.data {
+                let delta_x = data.get("deltaX").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                let delta_y = data.get("deltaY").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                scroll(delta_x, delta_y).await.map_err(|e| e.to_string())
+            } else {
+                Err("Missing data for scroll command".to_string())
+            }
+        }
         "open_website" => {
             if let Some(data) = &command.data {
                 if let Some(url) = data.get("url").and_then(|u| u.as_str()) {
-                    open_website(url.to_string()).await.map_err(|e| e.to_string())
+                    open_website(url.to_string())
+                        .await
+                        .map_err(|e| e.to_string())
                 } else {
                     Err("Missing 'url' parameter".to_string())
                 }

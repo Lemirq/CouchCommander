@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 
 interface MediaControlsProps {
-  onCommand: (command: { type: string; [key: string]: any }) => void;
+  onCommand: (
+    command: string,
+    data?: Record<string, unknown>,
+    id?: string,
+  ) => void;
   isConnected: boolean;
 }
 
@@ -27,30 +31,32 @@ export function MediaControls({ onCommand, isConnected }: MediaControlsProps) {
   const [volume, setVolume] = useState([50]);
   const [brightness, setBrightness] = useState([75]);
 
-  const handleMediaCommand = (type: string) => {
+  const handleMediaCommand = (command: string) => {
     if (!isConnected) return;
-    onCommand({ type });
+    onCommand(command);
   };
 
   const handleVolumeChange = (newVolume: number[]) => {
     setVolume(newVolume);
     if (isConnected) {
-      onCommand({ type: "volume_set", value: newVolume[0] });
+      // Note: volume_set command not implemented in backend yet
+      onCommand("volume_set", { value: newVolume[0] });
     }
   };
 
   const handleBrightnessChange = (newBrightness: number[]) => {
     setBrightness(newBrightness);
     if (isConnected) {
-      onCommand({ type: "brightness_set", value: newBrightness[0] });
+      // Note: brightness_set command not implemented in backend yet
+      onCommand("brightness_set", { value: newBrightness[0] });
     }
   };
 
   const mediaButtons = [
-    { type: "previous", label: "Previous", icon: SkipBack },
-    { type: "play_pause", label: "Play/Pause", icon: Play },
-    { type: "next", label: "Next", icon: SkipForward },
-    { type: "stop", label: "Stop", icon: Square },
+    { command: "media_previous", label: "Previous", icon: SkipBack },
+    { command: "play_pause", label: "Play/Pause", icon: Play },
+    { command: "media_next", label: "Next", icon: SkipForward },
+    { command: "stop", label: "Stop", icon: Square }, // Note: stop command not implemented in backend yet
   ];
 
   return (
@@ -69,8 +75,8 @@ export function MediaControls({ onCommand, isConnected }: MediaControlsProps) {
               const Icon = button.icon;
               return (
                 <Button
-                  key={button.type}
-                  onClick={() => handleMediaCommand(button.type)}
+                  key={button.command}
+                  onClick={() => handleMediaCommand(button.command)}
                   disabled={!isConnected}
                   variant="outline"
                   className="h-16 flex-col gap-2"

@@ -1,4 +1,4 @@
-use enigo::{Enigo, Key, Keyboard, Settings, Direction};
+use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -33,11 +33,13 @@ fn greet(name: &str) -> String {
 // Simple media control commands
 #[tauri::command]
 async fn play_pause() -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
-    // Send spacebar key (universal play/pause shortcut)
-    enigo.key(Key::Space, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::Space, Direction::Click)
+        .map_err(|e| format!("Failed to send play/pause key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "Play/pause command sent".to_string(),
@@ -46,11 +48,13 @@ async fn play_pause() -> Result<CommandResponse, String> {
 
 #[tauri::command]
 async fn media_previous() -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
-    // Send left arrow key (common previous shortcut in media players)
-    enigo.key(Key::LeftArrow, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::LeftArrow, Direction::Click)
+        .map_err(|e| format!("Failed to send previous key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "Previous track command sent".to_string(),
@@ -59,11 +63,13 @@ async fn media_previous() -> Result<CommandResponse, String> {
 
 #[tauri::command]
 async fn media_next() -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
-    // Send right arrow key (common next shortcut in media players)
-    enigo.key(Key::RightArrow, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::RightArrow, Direction::Click)
+        .map_err(|e| format!("Failed to send next key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "Next track command sent".to_string(),
@@ -72,11 +78,13 @@ async fn media_next() -> Result<CommandResponse, String> {
 
 #[tauri::command]
 async fn volume_up() -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
-    // Send volume up key
-    enigo.key(Key::VolumeUp, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::VolumeUp, Direction::Click)
+        .map_err(|e| format!("Failed to send volume up key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "Volume up command sent".to_string(),
@@ -85,11 +93,13 @@ async fn volume_up() -> Result<CommandResponse, String> {
 
 #[tauri::command]
 async fn volume_down() -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
-    // Send volume down key
-    enigo.key(Key::VolumeDown, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::VolumeDown, Direction::Click)
+        .map_err(|e| format!("Failed to send volume down key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "Volume down command sent".to_string(),
@@ -98,11 +108,13 @@ async fn volume_down() -> Result<CommandResponse, String> {
 
 #[tauri::command]
 async fn volume_mute() -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
-    // Send mute key
-    enigo.key(Key::VolumeMute, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::VolumeMute, Direction::Click)
+        .map_err(|e| format!("Failed to send volume mute key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "Mute command sent".to_string(),
@@ -112,28 +124,275 @@ async fn volume_mute() -> Result<CommandResponse, String> {
 // Generic key sending command for flexibility
 #[tauri::command]
 async fn send_key(key_name: String) -> Result<CommandResponse, String> {
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| format!("Failed to initialize input: {}", e))?;
-    
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
     let key = match key_name.to_lowercase().as_str() {
         "space" => Key::Space,
-        "enter" => Key::Return,
-        "escape" => Key::Escape,
-        "left" => Key::LeftArrow,
-        "right" => Key::RightArrow,
+        "enter" | "return" => Key::Return,
+        "escape" | "esc" => Key::Escape,
         "up" => Key::UpArrow,
         "down" => Key::DownArrow,
+        "left" => Key::LeftArrow,
+        "right" => Key::RightArrow,
+        "backspace" => Key::Backspace,
+        "tab" => Key::Tab,
+        "shift" => Key::Shift,
+        "ctrl" | "control" => Key::Control,
+        "alt" => Key::Alt,
+        "cmd" | "meta" => Key::Meta,
+        "f1" => Key::F1,
+        "f2" => Key::F2,
+        "f3" => Key::F3,
+        "f4" => Key::F4,
+        "f5" => Key::F5,
+        "f6" => Key::F6,
+        "f7" => Key::F7,
+        "f8" => Key::F8,
+        "f9" => Key::F9,
+        "f10" => Key::F10,
+        "f11" => Key::F11,
+        "f12" => Key::F12,
         "f" => Key::Unicode('f'), // Fullscreen in many players
         "k" => Key::Unicode('k'), // Pause/play in YouTube
         "j" => Key::Unicode('j'), // Rewind in YouTube
         "l" => Key::Unicode('l'), // Fast forward in YouTube
-        _ => return Err(format!("Unsupported key: {}", key_name)),
+        // Single character keys
+        _ => {
+            if key_name.len() == 1 {
+                let ch = key_name.chars().next().unwrap();
+                Key::Unicode(ch)
+            } else {
+                return Err(format!("Unknown key: {}", key_name));
+            }
+        }
     };
-    
-    enigo.key(key, Direction::Click).map_err(|e| format!("Failed to send key: {}", e))?;
-    
+
+    enigo
+        .key(key, Direction::Click)
+        .map_err(|e| format!("Failed to send key: {:?}", e))?;
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: format!("Key '{}' sent successfully", key_name),
+    })
+}
+
+// Text input command
+#[tauri::command]
+async fn text_input(text: String) -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .text(&text)
+        .map_err(|e| format!("Failed to type text: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("Text '{}' input successfully", text),
+    })
+}
+
+// Mouse movement command
+#[tauri::command]
+async fn mouse_move(delta_x: i32, delta_y: i32) -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .move_mouse(delta_x, delta_y, Coordinate::Rel)
+        .map_err(|e| format!("Failed to move mouse: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("Mouse moved by ({}, {})", delta_x, delta_y),
+    })
+}
+
+// Mouse click command
+#[tauri::command]
+async fn mouse_click(button: String) -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    let mouse_button = match button.to_lowercase().as_str() {
+        "left" => Button::Left,
+        "right" => Button::Right,
+        "middle" => Button::Middle,
+        _ => return Err(format!("Unknown mouse button: {}", button)),
+    };
+
+    enigo
+        .button(mouse_button, Direction::Click)
+        .map_err(|e| format!("Failed to click mouse: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("{} mouse button clicked", button),
+    })
+}
+
+// Scroll command
+#[tauri::command]
+async fn scroll(delta_x: i32, delta_y: i32) -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    // For scrolling, we'll use scroll method with proper Axis
+    if delta_y != 0 {
+        enigo
+            .scroll(delta_y, Axis::Vertical)
+            .map_err(|e| format!("Failed to scroll vertically: {:?}", e))?;
+    }
+
+    if delta_x != 0 {
+        enigo
+            .scroll(delta_x, Axis::Horizontal)
+            .map_err(|e| format!("Failed to scroll horizontally: {:?}", e))?;
+    }
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("Scrolled by ({}, {})", delta_x, delta_y),
+    })
+}
+
+// Volume set command
+#[tauri::command]
+async fn volume_set(value: u8) -> Result<CommandResponse, String> {
+    // Note: This is a simplified implementation
+    // On macOS, we can use AppleScript, on Windows we'd use different APIs
+    #[cfg(target_os = "macos")]
+    {
+        let script = format!("set volume output volume {}", value);
+        std::process::Command::new("osascript")
+            .arg("-e")
+            .arg(&script)
+            .output()
+            .map_err(|e| format!("Failed to set volume: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, you'd typically use Windows APIs or third-party tools
+        // For simplicity, we'll just return success
+        return Ok(CommandResponse {
+            status: "info".to_string(),
+            message: "Volume set not implemented on Windows yet".to_string(),
+        });
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux, we can use amixer or similar tools
+        let volume_percent = format!("{}%", value);
+        std::process::Command::new("amixer")
+            .args(&["set", "Master", &volume_percent])
+            .output()
+            .map_err(|e| format!("Failed to set volume: {}", e))?;
+    }
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("Volume set to {}%", value),
+    })
+}
+
+// Brightness set command
+#[tauri::command]
+async fn brightness_set(value: u8) -> Result<CommandResponse, String> {
+    #[cfg(target_os = "macos")]
+    {
+        // Use brightness command line tool or AppleScript
+        let brightness_value = (value as f32 / 100.0).min(1.0).max(0.0);
+        // Note: This is a simplified approach. In practice, you'd use the brightness command or other methods
+        std::process::Command::new("brightness")
+            .arg(brightness_value.to_string())
+            .output()
+            .map_err(|_| {
+                "brightness command not available, install via: brew install brightness".to_string()
+            })?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // On Windows, brightness control is more complex and typically requires WMI
+        return Ok(CommandResponse {
+            status: "info".to_string(),
+            message: "Brightness set not implemented on Windows yet".to_string(),
+        });
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux, we can use xrandr or write to /sys/class/backlight
+        if let Ok(output) = std::process::Command::new("xrandr")
+            .arg("--output")
+            .arg("eDP-1") // This might vary by system
+            .arg("--brightness")
+            .arg((value as f32 / 100.0).to_string())
+            .output()
+        {
+            if !output.status.success() {
+                return Err("Failed to set brightness via xrandr".to_string());
+            }
+        } else {
+            return Err("xrandr not available".to_string());
+        }
+    }
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: format!("Brightness set to {}%", value),
+    })
+}
+
+// Brightness up command
+#[tauri::command]
+async fn brightness_up() -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::F2, Direction::Click)
+        .map_err(|e| format!("Failed to send F2 key: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: "Brightness up command sent".to_string(),
+    })
+}
+
+// Brightness down command
+#[tauri::command]
+async fn brightness_down() -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::F1, Direction::Click)
+        .map_err(|e| format!("Failed to send F1 key: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: "Brightness down command sent".to_string(),
+    })
+}
+
+// Media stop command
+#[tauri::command]
+async fn media_stop() -> Result<CommandResponse, String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
+
+    enigo
+        .key(Key::Unicode('s'), Direction::Click)
+        .map_err(|e| format!("Failed to send stop key: {:?}", e))?;
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message: "Media stop command sent".to_string(),
     })
 }
 
@@ -144,7 +403,7 @@ async fn open_website(url: String) -> Result<CommandResponse, String> {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err("Invalid URL: must start with http:// or https://".to_string());
     }
-    
+
     // Use system default to open URL
     #[cfg(target_os = "macos")]
     let cmd = "open";
@@ -152,12 +411,12 @@ async fn open_website(url: String) -> Result<CommandResponse, String> {
     let cmd = "start";
     #[cfg(target_os = "linux")]
     let cmd = "xdg-open";
-    
+
     std::process::Command::new(cmd)
         .arg(&url)
         .spawn()
         .map_err(|e| format!("Failed to open URL: {}", e))?;
-    
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: format!("Opened website: {}", url),
@@ -168,7 +427,7 @@ async fn open_website(url: String) -> Result<CommandResponse, String> {
 #[tauri::command]
 async fn start_websocket_server(port: Option<u16>) -> Result<CommandResponse, String> {
     let server_port = port.unwrap_or(8080);
-    
+
     unsafe {
         if WEBSOCKET_SERVER.is_some() {
             return Ok(CommandResponse {
@@ -185,7 +444,7 @@ async fn start_websocket_server(port: Option<u16>) -> Result<CommandResponse, St
 
         let server = Arc::new(WebSocketServer::new(server_port));
         WEBSOCKET_SERVER = Some(Arc::clone(&server));
-        
+
         let server_clone = Arc::clone(&server);
         if let Some(rt) = &RUNTIME {
             rt.spawn(async move {
@@ -195,7 +454,7 @@ async fn start_websocket_server(port: Option<u16>) -> Result<CommandResponse, St
             });
         }
     }
-    
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: format!("WebSocket server started on port {}", server_port),
@@ -216,7 +475,7 @@ async fn stop_websocket_server() -> Result<CommandResponse, String> {
         // Note: In a production app, you'd want to properly shutdown the server
         // For now, we'll just remove the reference
     }
-    
+
     Ok(CommandResponse {
         status: "success".to_string(),
         message: "WebSocket server stopped".to_string(),
@@ -226,7 +485,7 @@ async fn stop_websocket_server() -> Result<CommandResponse, String> {
 #[tauri::command]
 async fn get_server_status() -> Result<ServerStatus, String> {
     let local_ip = get_local_ip();
-    
+
     unsafe {
         if let Some(server) = &WEBSOCKET_SERVER {
             Ok(ServerStatus {
@@ -250,7 +509,9 @@ async fn get_server_status() -> Result<ServerStatus, String> {
 async fn broadcast_message(message: String) -> Result<CommandResponse, String> {
     unsafe {
         if let Some(server) = &WEBSOCKET_SERVER {
-            server.broadcast_message(&message).map_err(|e| e.to_string())?;
+            server
+                .broadcast_message(&message)
+                .map_err(|e| e.to_string())?;
             Ok(CommandResponse {
                 status: "success".to_string(),
                 message: "Message broadcasted to all clients".to_string(),
@@ -263,7 +524,7 @@ async fn broadcast_message(message: String) -> Result<CommandResponse, String> {
 
 fn get_local_ip() -> Option<String> {
     use std::net::UdpSocket;
-    
+
     // Try to get local IP by connecting to a remote address
     if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
         if socket.connect("8.8.8.8:80").is_ok() {
@@ -272,13 +533,11 @@ fn get_local_ip() -> Option<String> {
             }
         }
     }
-    
+
     // Fallback: try to get local IP from network interfaces
     #[cfg(target_os = "macos")]
     {
-        if let Ok(output) = std::process::Command::new("ifconfig")
-            .arg("en0")
-            .output() {
+        if let Ok(output) = std::process::Command::new("ifconfig").arg("en0").output() {
             let output_str = String::from_utf8_lossy(&output.stdout);
             for line in output_str.lines() {
                 if line.trim().starts_with("inet ") && !line.contains("127.0.0.1") {
@@ -289,7 +548,7 @@ fn get_local_ip() -> Option<String> {
             }
         }
     }
-    
+
     None
 }
 
@@ -306,6 +565,15 @@ pub fn run() {
             volume_down,
             volume_mute,
             send_key,
+            text_input,
+            mouse_move,
+            mouse_click,
+            scroll,
+            volume_set,
+            brightness_set,
+            brightness_up,
+            brightness_down,
+            media_stop,
             open_website,
             start_websocket_server,
             stop_websocket_server,

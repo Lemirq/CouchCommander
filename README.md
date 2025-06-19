@@ -129,5 +129,4 @@ MIT License - see LICENSE file for details
 Built for users who want seamless control of their media setup without the complexity of expensive remote control solutions.
 
 ---
-
 _Turn any phone into a powerful remote control for your computer setup_ 📱➡️💻

@@ -25,7 +25,7 @@ export function VirtualTrackpad({
   const [isDragging, setIsDragging] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
-  const [touches, setTouches] = useState<Touch[]>([]);
+  const [touches, setTouches] = useState<React.Touch[]>([]);
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -39,7 +39,7 @@ export function VirtualTrackpad({
         setLastPosition({ x: touch.clientX, y: touch.clientY });
       } else if (e.touches.length === 2) {
         setIsScrolling(true);
-        setTouches(Array.from(e.touches));
+        setTouches(Array.from(e.touches) as React.Touch[]);
       }
     },
     [isConnected],
@@ -79,7 +79,7 @@ export function VirtualTrackpad({
           onScroll(deltaX, -deltaY * 3);
         }
 
-        setTouches(currentTouches);
+        setTouches(currentTouches as React.Touch[]);
       }
     },
     [

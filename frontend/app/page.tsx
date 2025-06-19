@@ -10,6 +10,7 @@ import { WebsiteShortcuts } from "@/components/website-shortcuts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Gamepad2, Wifi, WifiOff } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
@@ -31,6 +32,7 @@ export default function Home() {
           setServerIP(ip);
           setWebsocket(ws);
           console.log("Connected to server");
+          toast.success("Connected to server");
         };
 
         ws.onclose = () => {
@@ -50,7 +52,10 @@ export default function Home() {
         ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            console.log("Received message:", message);
+            console.log("Received message:", message.status);
+            if (message.status == "error") {
+              toast.error(message.message);
+            }
           } catch (error) {
             console.error("Failed to parse message:", error);
           }
@@ -73,17 +78,25 @@ export default function Home() {
   }, [websocket]);
 
   const sendCommand = useCallback(
-    (command: { type: string; [key: string]: any }) => {
+    (command: string, data?: Record<string, unknown>, id?: string) => {
       if (!websocket || websocket.readyState !== WebSocket.OPEN) {
         console.warn("WebSocket not connected");
+        toast.warning("WebSocket not connected");
         return;
       }
 
+      const message = {
+        command,
+        data: data || null,
+        id: id || null,
+      };
+
       try {
-        websocket.send(JSON.stringify(command));
-        console.log("Sent command:", command);
+        websocket.send(JSON.stringify(message));
+        console.log("Sent command:", message);
       } catch (error) {
         console.error("Failed to send command:", error);
+        toast.warning("Failed to send command");
       }
     },
     [websocket],
@@ -91,42 +104,46 @@ export default function Home() {
 
   const handleMouseMove = useCallback(
     (deltaX: number, deltaY: number) => {
-      sendCommand({ type: "mouse_move", deltaX, deltaY });
+      // Note: mouse_move command not implemented in backend yet
+      sendCommand("mouse_move", { deltaX, deltaY });
     },
     [sendCommand],
   );
 
   const handleMouseClick = useCallback(
     (button: "left" | "right") => {
-      sendCommand({ type: "mouse_click", button });
+      // Note: mouse_click command not implemented in backend yet
+      sendCommand("mouse_click", { button });
     },
     [sendCommand],
   );
 
   const handleScroll = useCallback(
     (deltaX: number, deltaY: number) => {
-      sendCommand({ type: "scroll", deltaX, deltaY });
+      // Note: scroll command not implemented in backend yet
+      sendCommand("scroll", { deltaX, deltaY });
     },
     [sendCommand],
   );
 
   const handleKeyPress = useCallback(
     (key: string) => {
-      sendCommand({ type: "key_press", key });
+      sendCommand("send_key", { key });
     },
     [sendCommand],
   );
 
   const handleTextInput = useCallback(
     (text: string) => {
-      sendCommand({ type: "text_input", text });
+      // Note: text_input command not implemented in backend yet
+      sendCommand("text_input", { text });
     },
     [sendCommand],
   );
 
   const handleOpenWebsite = useCallback(
     (url: string) => {
-      sendCommand({ type: "open_website", url });
+      sendCommand("open_website", { url });
     },
     [sendCommand],
   );
