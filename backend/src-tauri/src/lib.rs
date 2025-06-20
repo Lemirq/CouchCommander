@@ -1,5 +1,9 @@
 use base64::{engine::general_purpose, Engine as _};
-use enigo::{Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
+use enigo::{
+    Axis, Button, Coordinate,
+    Direction::{Click, Press, Release},
+    Enigo, Key, Keyboard, Mouse, Settings,
+};
 use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -53,7 +57,7 @@ async fn play_pause() -> Result<CommandResponse, String> {
     tokio::task::spawn_blocking(move || {
         let mut enigo = create_enigo()?;
 
-        enigo.key(Key::Space, Direction::Click).map_err(|e| {
+        enigo.key(Key::Space, Press).map_err(|e| {
             eprintln!("Failed to send play/pause key: {:?}", e);
             format!("Failed to send play/pause key: {:?}", e)
         })?;
@@ -77,7 +81,7 @@ async fn media_previous() -> Result<CommandResponse, String> {
         let mut enigo = create_enigo()?;
 
         enigo
-            .key(Key::Unicode('j'), Direction::Click) // Previous/rewind key
+            .key(Key::Unicode('j'), Press) // Previous/rewind key
             .map_err(|e| format!("Failed to send media previous key: {:?}", e))?;
 
         Ok(CommandResponse {
@@ -98,7 +102,7 @@ async fn media_next() -> Result<CommandResponse, String> {
         let mut enigo = create_enigo()?;
 
         enigo
-            .key(Key::Unicode('l'), Direction::Click) // Next/fast forward key
+            .key(Key::Unicode('l'), Press) // Next/fast forward key
             .map_err(|e| format!("Failed to send media next key: {:?}", e))?;
 
         Ok(CommandResponse {
@@ -119,7 +123,7 @@ async fn volume_up() -> Result<CommandResponse, String> {
         let mut enigo = create_enigo()?;
 
         enigo
-            .key(Key::VolumeUp, Direction::Click)
+            .key(Key::VolumeUp, Press)
             .map_err(|e| format!("Failed to send volume up key: {:?}", e))?;
 
         Ok(CommandResponse {
@@ -140,7 +144,7 @@ async fn volume_down() -> Result<CommandResponse, String> {
         let mut enigo = create_enigo()?;
 
         enigo
-            .key(Key::VolumeDown, Direction::Click)
+            .key(Key::VolumeDown, Press)
             .map_err(|e| format!("Failed to send volume down key: {:?}", e))?;
 
         Ok(CommandResponse {
@@ -161,7 +165,7 @@ async fn volume_mute() -> Result<CommandResponse, String> {
         let mut enigo = create_enigo()?;
 
         enigo
-            .key(Key::VolumeMute, Direction::Click)
+            .key(Key::VolumeMute, Press)
             .map_err(|e| format!("Failed to send volume mute key: {:?}", e))?;
 
         Ok(CommandResponse {
@@ -223,9 +227,17 @@ async fn send_key(key_name: String) -> Result<CommandResponse, String> {
             }
         };
 
+        // Follow the working example pattern: Press, sleep, Release
         enigo
-            .key(key, Direction::Click)
-            .map_err(|e| format!("Failed to send key '{}': {:?}", key_name, e))?;
+            .key(key, Press)
+            .map_err(|e| format!("Failed to press key '{}': {:?}", key_name, e))?;
+
+        // Small delay between press and release
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        enigo
+            .key(key, Release)
+            .map_err(|e| format!("Failed to release key '{}': {:?}", key_name, e))?;
 
         Ok(CommandResponse {
             status: "success".to_string(),
@@ -311,35 +323,32 @@ async fn text_input(text: String) -> Result<CommandResponse, String> {
         }
     };
 
-    // Process text in blocking task using the global shared Enigo instance
+    // Process text in blocking task
     let result = tokio::task::spawn_blocking(move || {
-        println!("Creating new Enigo instance for text input");
-
+        println!("Creating Enigo instance for text input");
         let mut enigo = create_enigo()?;
 
-        println!("Starting to type text: \"{}\"", text);
+        println!("Typing text: \"{}\"", text);
 
-        // Use enigo.text() method instead of character-by-character (following keyboard.rs example)
-        match enigo.text(&text) {
-            Ok(_) => {
-                println!("Text input successful: {} characters", text.len());
-                Ok(CommandResponse {
-                    status: "success".to_string(),
-                    message: format!("Text input successful ({} characters)", text.len()),
-                })
-            }
-            Err(e) => {
-                eprintln!("Text input failed: {:?}", e);
-                Err(format!("Text input failed: {:?}", e))
-            }
-        }
+        // Small delay before typing for stability
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        enigo
+            .text(&text)
+            .map_err(|e| format!("Text input failed: {:?}", e))?;
+
+        println!("Text input completed successfully");
+        Ok(CommandResponse {
+            status: "success".to_string(),
+            message: format!("Text input successful ({} characters)", text.len()),
+        })
     })
     .await;
 
     match result {
         Ok(inner_result) => inner_result,
         Err(e) => {
-            eprintln!("Text input task panicked: {:?}", e);
+            eprintln!("Text input task failed: {:?}", e);
             Err("Text input operation failed".to_string())
         }
     }
@@ -389,7 +398,7 @@ async fn mouse_click(button: String) -> Result<CommandResponse, String> {
         };
 
         enigo
-            .button(mouse_button, Direction::Click)
+            .button(mouse_button, Press)
             .map_err(|e| format!("Failed to click mouse button '{}': {:?}", button, e))?;
 
         Ok(CommandResponse {
@@ -531,7 +540,7 @@ async fn brightness_up() -> Result<CommandResponse, String> {
         Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
 
     enigo
-        .key(Key::F2, Direction::Click)
+        .key(Key::F2, Press)
         .map_err(|e| format!("Failed to send F2 key: {:?}", e))?;
 
     Ok(CommandResponse {
@@ -547,7 +556,7 @@ async fn brightness_down() -> Result<CommandResponse, String> {
         Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create enigo: {:?}", e))?;
 
     enigo
-        .key(Key::F1, Direction::Click)
+        .key(Key::F1, Press)
         .map_err(|e| format!("Failed to send F1 key: {:?}", e))?;
 
     Ok(CommandResponse {
@@ -563,7 +572,7 @@ async fn media_stop() -> Result<CommandResponse, String> {
         let mut enigo = create_enigo()?;
 
         enigo
-            .key(Key::Unicode('k'), Direction::Click) // Stop/pause key
+            .key(Key::Unicode('k'), Press) // Stop/pause key
             .map_err(|e| format!("Failed to send media stop key: {:?}", e))?;
 
         Ok(CommandResponse {
@@ -637,9 +646,22 @@ async fn start_websocket_server(port: Option<u16>) -> Result<CommandResponse, St
         }
     }
 
+    // Automatically start the Next.js frontend server
+    match start_nextjs_server().await {
+        Ok(_) => {
+            println!("Next.js server started automatically");
+        }
+        Err(e) => {
+            eprintln!("Warning: Failed to start Next.js server: {}", e);
+        }
+    }
+
     Ok(CommandResponse {
         status: "success".to_string(),
-        message: format!("WebSocket server started on port {}", server_port),
+        message: format!(
+            "WebSocket server started on port {} with frontend",
+            server_port
+        ),
     })
 }
 
@@ -658,9 +680,19 @@ async fn stop_websocket_server() -> Result<CommandResponse, String> {
         // For now, we'll just remove the reference
     }
 
+    // Also stop the Next.js server
+    match stop_nextjs_server().await {
+        Ok(_) => {
+            println!("Next.js server stopped automatically");
+        }
+        Err(e) => {
+            eprintln!("Warning: Failed to stop Next.js server: {}", e);
+        }
+    }
+
     Ok(CommandResponse {
         status: "success".to_string(),
-        message: "WebSocket server stopped".to_string(),
+        message: "WebSocket server and frontend stopped".to_string(),
     })
 }
 
@@ -782,16 +814,65 @@ async fn generate_qr_code(url: String) -> Result<String, String> {
 async fn start_nextjs_server() -> Result<CommandResponse, String> {
     use std::process::Command;
 
+    // Get the current working directory and resolve frontend path
+    let current_dir =
+        std::env::current_dir().map_err(|e| format!("Failed to get current directory: {:?}", e))?;
+
+    println!("Current directory: {:?}", current_dir);
+
+    // Try multiple possible frontend directory locations
+    let possible_frontend_dirs = vec![
+        Some(current_dir.join("../frontend")),
+        current_dir.parent().map(|p| p.join("frontend")),
+        Some(current_dir.join("../../frontend")),
+        current_dir
+            .parent()
+            .and_then(|p| p.parent())
+            .map(|p| p.join("frontend")),
+    ];
+
+    let mut frontend_dir = None;
+    for dir_option in possible_frontend_dirs {
+        if let Some(dir) = dir_option {
+            println!("Checking frontend directory: {:?}", dir);
+            if dir.exists() && dir.join("package.json").exists() {
+                frontend_dir = Some(dir);
+                break;
+            }
+        }
+    }
+
+    let frontend_dir = frontend_dir.ok_or_else(|| {
+        format!(
+            "Frontend directory not found. Current dir: {:?}. Searched for ../frontend, ../../frontend",
+            current_dir
+        )
+    })?;
+
+    println!("Using frontend directory: {:?}", frontend_dir);
+
+    // Try different npm commands based on the system
+    let npm_cmd = if cfg!(target_os = "windows") {
+        "npm.cmd"
+    } else {
+        "npm"
+    };
+
     // Try to start the Next.js server in the frontend directory
-    let mut cmd = Command::new("npm");
+    let mut cmd = Command::new(npm_cmd);
     cmd.args(&["run", "dev"])
-        .current_dir("../frontend")
+        .current_dir(&frontend_dir)
         .spawn()
-        .map_err(|e| format!("Failed to start Next.js server: {:?}", e))?;
+        .map_err(|e| {
+            format!(
+                "Failed to start Next.js server: {:?}. Make sure npm is installed and in PATH. Frontend dir: {:?}",
+                e, frontend_dir
+            )
+        })?;
 
     Ok(CommandResponse {
         status: "success".to_string(),
-        message: "Next.js server starting...".to_string(),
+        message: format!("Next.js server starting in {:?}...", frontend_dir),
     })
 }
 
@@ -818,6 +899,81 @@ async fn check_nextjs_server() -> Result<bool, String> {
     }
 }
 
+// Stop Next.js server
+#[tauri::command]
+async fn stop_nextjs_server() -> Result<CommandResponse, String> {
+    use std::process::Command;
+
+    let mut stopped_processes = 0;
+
+    // Kill processes on port 3000 (Next.js default)
+    #[cfg(target_os = "macos")]
+    {
+        match Command::new("lsof").args(&["-ti", ":3000"]).output() {
+            Ok(output) => {
+                if !output.stdout.is_empty() {
+                    let pids = String::from_utf8_lossy(&output.stdout);
+                    for pid in pids.trim().split('\n') {
+                        if !pid.is_empty() {
+                            match Command::new("kill").args(&["-9", pid]).output() {
+                                Ok(_) => {
+                                    stopped_processes += 1;
+                                    println!("Killed process with PID: {}", pid);
+                                }
+                                Err(e) => eprintln!("Failed to kill process {}: {:?}", pid, e),
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => eprintln!("Failed to list processes on port 3000: {:?}", e),
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Try to kill node processes that might be running Next.js
+        match Command::new("taskkill")
+            .args(&[
+                "/F",
+                "/FI",
+                "IMAGENAME eq node.exe",
+                "/FI",
+                "WINDOWTITLE eq *next*",
+            ])
+            .output()
+        {
+            Ok(_) => {
+                stopped_processes += 1;
+                println!("Attempted to stop Next.js processes on Windows");
+            }
+            Err(e) => eprintln!("Failed to stop Next.js processes on Windows: {:?}", e),
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        match Command::new("pkill").args(&["-f", "next.*dev"]).output() {
+            Ok(_) => {
+                stopped_processes += 1;
+                println!("Attempted to stop Next.js processes on Linux");
+            }
+            Err(e) => eprintln!("Failed to stop Next.js processes on Linux: {:?}", e),
+        }
+    }
+
+    let message = if stopped_processes > 0 {
+        format!("Next.js server stopped ({} processes)", stopped_processes)
+    } else {
+        "Next.js server stop attempted (no processes found)".to_string()
+    };
+
+    Ok(CommandResponse {
+        status: "success".to_string(),
+        message,
+    })
+}
+
 // Get connection info for QR code
 #[tauri::command]
 async fn get_connection_info() -> Result<serde_json::Value, String> {
@@ -840,6 +996,10 @@ async fn get_connection_info() -> Result<serde_json::Value, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--flag1", "--flag2"]),
+        ))
         .invoke_handler(tauri::generate_handler![
             greet,
             play_pause,
@@ -867,6 +1027,7 @@ pub fn run() {
             generate_qr_code,
             get_connection_info,
             start_nextjs_server,
+            stop_nextjs_server,
             check_nextjs_server
         ])
         .run(tauri::generate_context!())

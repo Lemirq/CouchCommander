@@ -12,6 +12,8 @@
   "app": {
     "windows": [
       {
+        "titleBarStyle": "Transparent",
+        "hiddenTitle": true,
         "title": "backend",
         "width": 800,
         "height": 600
