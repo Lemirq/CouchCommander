@@ -182,9 +182,10 @@ async fn handle_connection(stream: TcpStream, addr: SocketAddr, clients: ClientC
 
 async fn handle_command(command: WebSocketCommand) -> WebSocketResponse {
     use crate::{
-        brightness_down, brightness_set, brightness_up, media_next, media_previous, media_stop,
-        mouse_click, mouse_move, open_website, play_pause, scroll, send_key, text_input,
-        volume_down, volume_mute, volume_set, volume_up,
+        brightness_down, brightness_set, brightness_up, clear_modifier_keys,
+        get_modifier_key_states, media_next, media_previous, media_stop, mouse_click, mouse_move,
+        open_website, play_pause, scroll, send_key, test_space_key, text_input, test_enigo_creation, toggle_modifier_key, volume_down,
+        volume_mute, volume_set, volume_up,
     };
 
     let result = match command.command.as_str() {
@@ -195,41 +196,8 @@ async fn handle_command(command: WebSocketCommand) -> WebSocketResponse {
         "volume_up" => volume_up().await.map_err(|e| e.to_string()),
         "volume_down" => volume_down().await.map_err(|e| e.to_string()),
         "volume_mute" => volume_mute().await.map_err(|e| e.to_string()),
-        "volume_set" => {
-            if let Some(data) = &command.data {
-                if let Some(value) = data.get("value").and_then(|v| v.as_u64()) {
-                    volume_set(value as u8).await.map_err(|e| e.to_string())
-                } else {
-                    Err("Missing or invalid 'value' parameter".to_string())
-                }
-            } else {
-                Err("Missing data for volume_set command".to_string())
-            }
-        }
-        "brightness_up" => brightness_up().await.map_err(|e| e.to_string()),
-        "brightness_down" => brightness_down().await.map_err(|e| e.to_string()),
-        "brightness_set" => {
-            if let Some(data) = &command.data {
-                if let Some(value) = data.get("value").and_then(|v| v.as_u64()) {
-                    brightness_set(value as u8).await.map_err(|e| e.to_string())
-                } else {
-                    Err("Missing or invalid 'value' parameter".to_string())
-                }
-            } else {
-                Err("Missing data for brightness_set command".to_string())
-            }
-        }
-        "send_key" => {
-            if let Some(data) = &command.data {
-                if let Some(key) = data.get("key").and_then(|k| k.as_str()) {
-                    send_key(key.to_string()).await.map_err(|e| e.to_string())
-                } else {
-                    Err("Missing 'key' parameter".to_string())
-                }
-            } else {
-                Err("Missing data for send_key command".to_string())
-            }
-        }
+        "test_enigo_creation" => test_enigo_creation().await.map_err(|e| e.to_string()),
+        "test_space_key" => test_space_key().await.map_err(|e| e.to_string()),
         "text_input" => {
             if let Some(data) = &command.data {
                 if let Some(text) = data.get("text").and_then(|t| t.as_str()) {
@@ -322,16 +290,84 @@ async fn handle_command(command: WebSocketCommand) -> WebSocketResponse {
                 Err("Missing data for open_website command".to_string())
             }
         }
+        "toggle_modifier_key" => {
+            if let Some(data) = &command.data {
+                if let Some(key_name) = data.get("key_name").and_then(|k| k.as_str()) {
+                    toggle_modifier_key(key_name.to_string())
+                        .await
+                        .map_err(|e| e.to_string())
+                } else {
+                    Err("Missing 'key_name' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for toggle_modifier_key command".to_string())
+            }
+        }
+        "clear_modifier_keys" => clear_modifier_keys().await.map_err(|e| e.to_string()),
+        "get_modifier_key_states" => match get_modifier_key_states().await {
+            Ok(_states) => Ok(crate::CommandResponse {
+                status: "success".to_string(),
+                message: "Modifier key states retrieved".to_string(),
+            }),
+            Err(e) => Err(e.to_string()),
+        },
+        "volume_set" => {
+            if let Some(data) = &command.data {
+                if let Some(value) = data.get("value").and_then(|v| v.as_u64()) {
+                    volume_set(value as u8).await.map_err(|e| e.to_string())
+                } else {
+                    Err("Missing or invalid 'value' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for volume_set command".to_string())
+            }
+        },
+        "brightness_up" => brightness_up().await.map_err(|e| e.to_string()),
+        "brightness_down" => brightness_down().await.map_err(|e| e.to_string()),
+        "brightness_set" => {
+            if let Some(data) = &command.data {
+                if let Some(value) = data.get("value").and_then(|v| v.as_u64()) {
+                    brightness_set(value as u8).await.map_err(|e| e.to_string())
+                } else {
+                    Err("Missing or invalid 'value' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for brightness_set command".to_string())
+            }
+        },
+        "send_key" => {
+            if let Some(data) = &command.data {
+                if let Some(key) = data.get("key").and_then(|k| k.as_str()) {
+                    send_key(key.to_string()).await.map_err(|e| e.to_string())
+                } else {
+                    Err("Missing 'key' parameter".to_string())
+                }
+            } else {
+                Err("Missing data for send_key command".to_string())
+            }
+        },
         _ => Err(format!("Unknown command: {}", command.command)),
     };
 
     match result {
-        Ok(response) => WebSocketResponse {
-            id: command.id,
-            status: response.status,
-            message: response.message,
-            data: None,
-        },
+        Ok(response) => {
+            // Special handling for get_modifier_key_states to include data
+            let data = if command.command == "get_modifier_key_states" {
+                match get_modifier_key_states().await {
+                    Ok(states) => Some(states),
+                    Err(_) => None,
+                }
+            } else {
+                None
+            };
+
+            WebSocketResponse {
+                id: command.id,
+                status: response.status,
+                message: response.message,
+                data,
+            }
+        }
         Err(error) => WebSocketResponse {
             id: command.id,
             status: "error".to_string(),

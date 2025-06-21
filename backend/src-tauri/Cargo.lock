@@ -250,6 +250,7 @@ dependencies = [
  "enigo",
  "futures-util",
  "image 0.24.9",
+ "lazy_static",
  "qrcode",
  "serde",
  "serde_json",
